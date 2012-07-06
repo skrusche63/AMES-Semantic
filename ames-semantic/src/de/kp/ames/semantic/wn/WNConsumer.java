@@ -10,9 +10,13 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import net.didion.jwnl.data.POS;
+import net.didion.jwnl.data.Pointer;
+import net.didion.jwnl.data.PointerType;
+import net.didion.jwnl.data.Synset;
+import net.didion.jwnl.data.Word;
 
 import org.apache.solr.common.SolrInputDocument;
 
@@ -22,6 +26,19 @@ import de.kp.ames.semantic.wn.data.WNLoader;
 
 public class WNConsumer {
 	
+	private static HashMap<String, POS> posMap;
+	
+	static {
+	
+		posMap = new HashMap<String, POS>();
+	
+		posMap.put("3", POS.ADJECTIVE);
+		posMap.put("4", POS.ADVERB);
+		posMap.put("1", POS.NOUN);
+		posMap.put("2", POS.VERB);
+	
+	}
+			
 	/**
 	 * @throws Exception
 	 */
@@ -30,8 +47,14 @@ public class WNConsumer {
 	    BufferedReader reader = new BufferedReader(new InputStreamReader(WNLoader.load()));
 	    String line;
 
-        final Map<String, ArrayList<String>> imap = new TreeMap<String, ArrayList<String>>();
+        final HashSet<String> keys = new HashSet<String>();
 
+        /*
+         * http://wordnet.princeton.edu/man/prologdb.5WN.html
+         * 
+         * s(synset_id,w_num,'word',ss_type,sense_number,tag_count)
+         * s(100058608,1,'elopement',n,1,0).
+         */
 	    while ((line = reader.readLine()) != null) {
 	    	
 	    	/* 
@@ -44,62 +67,19 @@ public class WNConsumer {
 	    	 */
 	    	line = line.substring(2);
  
-	    	/* 
-	    	 * Determine synset identifier
+	    	/*
+	    	 * Tokenize by ','
 	    	 */
-	    	int comma = line.indexOf(',');
-            String key = line.substring(0, comma);
-
-            /* 
-             * Determine quoted word
-             */
-            int quote1 = line.indexOf('\'');
-            line = line.substring(quote1 + 1);
- 
-            int q2 = line.lastIndexOf('\'');
-            String word = line.substring(0, q2).toLowerCase().replace("''", "'");
-
-            if (! isWord(word)) continue;
-
-            ArrayList<String> words = imap.get(key);
-            if (words == null) {
-                
-            	words = new ArrayList<String>();
-                words.add(word);
-                
-                imap.put(key, words);
-            
-            } else {
-                words.add(word);
-
-	   		}
+	    	String[] tokens = line.split(",");	    	
+	    	keys.add(tokens[0]);
             
 	    }
 	    
 	    /* 
 	     * Finally build wordnet index in solr
 	     */
-	    buildWNIndex(imap);
+	    buildWNIndex(keys);
 	    
-	}
-
-	/**
-	 * Check whether a word contains only alphabetic 
-	 * characters by checking it one character at a time.
-	 * 
-	 * @param s
-	 * @return
-	 */
-	private static boolean isWord(String s) {
-   
-		int len = s.length();
-		for (int i = 0; i < len; i++) {
-			if (!Character.isLetter(s.charAt(i))) return false;
-  
-		}
-    
-		return true;
-	
 	}
 	
 	/**
@@ -108,38 +88,96 @@ public class WNConsumer {
 	 * 
 	 * @param synonyms
 	 */
-	private static void buildWNIndex(Map<String, ArrayList<String>> synonyms) {
+	private static void buildWNIndex(HashSet<String> keys) throws Exception {
 
+		WNProvider provider = WNProvider.getInstance();
+		
 		Collection<SolrInputDocument> documents = new ArrayList<SolrInputDocument>();
 		
-		Set<String> keys = synonyms.keySet();
 		for (String key:keys) {
 			
-			SolrInputDocument document = new SolrInputDocument();
+			String off = key.substring(1);
+			String pos = key.substring(0,0);
 			
-			/* 
-			 * Identifier
+			/*
+			 * Retrieve synset from wordnet-3.0
 			 */
-			document.addField("id", SolrConstants.WN_PREFIX + key);
+			POS wnPos = posMap.containsKey(pos) ? posMap.get(pos) : null;
+			if (wnPos == null) continue;
+			
+			Synset synset = provider.getSynset(off, wnPos);
 
-			/* 
-			 * Source
+			/*
+			 * Hypernyms
 			 */
-			ArrayList<String> sources = new ArrayList<String>();
-			sources.add(SolrConstants.LEX_ID_WordNet);
+			Pointer[] pointers = synset.getPointers(PointerType.HYPERNYM);
+			if (pointers.length == 0) continue;
 			
-			document.addField(SolrConstants.SOURCE_FIELD, sources);
+			String hypernym = pointers[0].getTargetSynset().getWord(0).getLemma();
+
+			/*
+			 * Description
+			 */
+			String gloss = synset.getGloss();
 			
-			/* 
+			/*
 			 * Words
 			 */
-			document.addField(SolrConstants.WORD_FIELD, synonyms.get(key));
-			documents.add(document);
+			Word[] words = synset.getWords();
+			String synonyms = getSynonyms(words);
+			
+			for (Word word:words) {
+
+				SolrInputDocument document = new SolrInputDocument();
+				
+				/* 
+				 * Identifier
+				 */
+				document.addField("id", synset.getKey() + ":" + word.getIndex());
+				
+				/* 
+				 * Word
+				 */
+				document.addField(SolrConstants.WORD_FIELD, word.getLemma());
+				
+				/*
+				 * Description
+				 */
+				document.addField(SolrConstants.DESC_FIELD, gloss);
+				
+				/*
+				 * Synonyms
+				 */
+				document.addField(SolrConstants.SYNONYM_FIELD, synonyms);
+				
+				/*
+				 * Hypernym
+				 */
+				document.addField(SolrConstants.HYPERNYM_FIELD, hypernym);
+
+				documents.add(document);
+				
+			}
 			
 		}
 		
 		SolrProxy.getInstance().createEntries(documents);
 		
+	}
+
+	private static String getSynonyms(Word[] words) {
+		
+		if (words.length == 1) {
+			return "(Synonyms: " + words[0].getLemma() + ")";
+		}
+		
+		String synonyms = "(Synonyms: " + words[0].getLemma();
+		for (int i=1; i < words.length; i++) {
+			synonyms += ", " + words[i].getLemma();
+		}
+
+		return synonyms + ")";
+
 	}
 
 }

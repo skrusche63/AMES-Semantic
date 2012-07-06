@@ -8,22 +8,10 @@ package de.kp.ames.semantic.solr;
 
 public class SolrConstants {
 
-	public static String LEX_ID 		= "urn:oasis:names:tc:ebxml-regrep:LEX";
-	public static String LEX_ID_WordNet = LEX_ID + ":WordNet";
+	public static String HYPERNYM_FIELD = "hypernym_kpg";
+	public static String SYNONYM_FIELD  = "synonym_kpg";
 
-	public static String WN_PREFIX = "WN-";
-
-	/* 
-	 * A predfined index field that holds all the terms
-	 * that have been assigned to a certain synset key 
-	 */
+	public static String DESC_FIELD = "desc_kpg";
 	public static String WORD_FIELD = "word_kpg";
-	
-	/* 
-	 * A predefined index field to hold the different
-	 * lexical sources that are assigned to the search
-	 * index
-	 */
-	public static String SOURCE_FIELD = "source_kps";
 
 }
