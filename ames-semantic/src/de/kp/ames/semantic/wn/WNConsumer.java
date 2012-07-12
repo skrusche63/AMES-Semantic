@@ -82,6 +82,10 @@ public class WNConsumer {
 	    
 	}
 	
+	private static String beautify(String word) {
+		return word.replace("_", " ");
+	}
+	
 	/**
 	 * This method creates a wordnet based search index entry, that is
 	 * based on the WordNet-3.0 synonyms provided as a prolog file
@@ -94,15 +98,18 @@ public class WNConsumer {
 		
 		Collection<SolrInputDocument> documents = new ArrayList<SolrInputDocument>();
 		
+		System.out.println("key count: " + keys.size());
+		
 		for (String key:keys) {
 			
 			String off = key.substring(1);
-			String pos = key.substring(0,0);
+			String pos = key.substring(0,1);
 			
 			/*
 			 * Retrieve synset from wordnet-3.0
 			 */
 			POS wnPos = posMap.containsKey(pos) ? posMap.get(pos) : null;
+			
 			if (wnPos == null) continue;
 			
 			Synset synset = provider.getSynset(off, wnPos);
@@ -138,7 +145,7 @@ public class WNConsumer {
 				/* 
 				 * Word
 				 */
-				document.addField(SolrConstants.WORD_FIELD, word.getLemma());
+				document.addField(SolrConstants.WORD_FIELD, beautify(word.getLemma()));
 				
 				/*
 				 * Description
@@ -148,18 +155,20 @@ public class WNConsumer {
 				/*
 				 * Synonyms
 				 */
-				document.addField(SolrConstants.SYNONYM_FIELD, synonyms);
+				document.addField(SolrConstants.SYNONYM_FIELD, beautify(synonyms));
 				
 				/*
 				 * Hypernym
 				 */
-				document.addField(SolrConstants.HYPERNYM_FIELD, hypernym);
+				document.addField(SolrConstants.HYPERNYM_FIELD, beautify(hypernym));
 
 				documents.add(document);
 				
 			}
 			
 		}
+		
+		System.out.println("doc count: " + documents.size());
 		
 		SolrProxy.getInstance().createEntries(documents);
 		
