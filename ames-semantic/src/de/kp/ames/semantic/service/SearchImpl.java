@@ -61,10 +61,34 @@ public class SearchImpl extends ServiceImpl {
 					this.sendBadRequest(ctx, e);
 
 				}
-				
 			}
+		} else if (methodName.equals("search")) {
+			/*
+			 * Call searchmethod
+			 */
+			String query = this.method.getAttribute("query");
+			String start = "0"; //this.method.getAttribute("_startRow");
+			String limit = "30"; //this.method.getAttribute("_endRow");
 			
+			if ((query == null) || (start == null) || (limit == null)) {
+				this.sendNotImplemented(ctx);
+				
+			} else {
+				
+				try {
+					/*
+					 * JSON response
+					 */
+					String content = search(query, start, limit);
+					this.sendJSONResponse(content, ctx.getResponse());
+					
+				} catch (Exception e) {
+					this.sendBadRequest(ctx, e);
+
+				}
+			}			
 		}
+
 	}
 
 
@@ -79,6 +103,19 @@ public class SearchImpl extends ServiceImpl {
 	 */
 	private String suggest(String query, String start, String limit) throws Exception {
 		return new WNSearcher().suggest(query, start, limit);
+	}
+
+	/**
+	 * Term suggestion returns a JSON object as response
+	 * 
+	 * @param query
+	 * @param start
+	 * @param limit
+	 * @return
+	 * @throws Exception
+	 */
+	private String search(String query, String start, String limit) throws Exception {
+		return new WNSearcher().search(query, start, limit);
 	}
 	
 }

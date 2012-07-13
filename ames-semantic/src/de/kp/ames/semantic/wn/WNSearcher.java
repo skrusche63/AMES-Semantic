@@ -102,6 +102,12 @@ public class WNSearcher {
 
 	}
 	
+	public String search(String query, String start, String limit) {
+
+		return new JSONArray().toString();
+	}
+
+	
 	public String suggest(String prefix, String start, String limit) throws Exception {
 
 		/*
@@ -125,7 +131,7 @@ public class WNSearcher {
 		 * set filter for a specific set of indexed documents
 		 * within Solr by category "cat" field  
 		 */
-		query.setFilterQueries("cat:" + SolrConstants.CATEGORY_VALUE);
+		query.setFilterQueries(SolrConstants.CATEGORY_FIELD + ":" + SolrConstants.CATEGORY_VALUE);
 		
 		query.addHighlightField(SolrConstants.WORD_FIELD);
 		query.setHighlight(true);
@@ -188,6 +194,13 @@ public class WNSearcher {
 			 */
 			String hypernym  = (String)doc.getFieldValue(SolrConstants.HYPERNYM_FIELD);
 			jDoc.put("hypernym", hypernym  + " (" + posLabel + ")");
+
+			/* 
+			 * Description
+			 */
+			String queryString  = (String)doc.getFieldValue(SolrConstants.WORD_FIELD);
+			jDoc.put("qs", queryString);
+
 			
 			jArray.put(jDoc);
 
@@ -225,6 +238,7 @@ public class WNSearcher {
 		
 
 	}
+
 	
 	
 }
