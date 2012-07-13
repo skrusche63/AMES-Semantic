@@ -21,6 +21,7 @@ import org.json.JSONObject;
 
 import de.kp.ames.semantic.solr.SolrConstants;
 import de.kp.ames.semantic.solr.SolrProxy;
+import de.kp.ames.semantic.wn.config.WNConstants;
 
 public class WNSearcher {
 
@@ -33,7 +34,9 @@ public class WNSearcher {
 		solrProxy = SolrProxy.getInstance();
 	}
 
-	
+	/*
+	 * experimental Wikipedia OPenSearch API test
+	 */
 	public String suggestWikipedia(String prefix, String limit) {
 		StringBuilder builder = new StringBuilder();
 		
@@ -118,11 +121,17 @@ public class WNSearcher {
 		String qs = SolrConstants.WORD_FIELD + ":" + prefix;
 		query.setQuery(qs);
 		
+		/*
+		 * set filter for a specific set of indexed documents
+		 * within Solr by category "cat" field  
+		 */
+		query.setFilterQueries("cat:" + SolrConstants.CATEGORY_VALUE);
+		
 		query.addHighlightField(SolrConstants.WORD_FIELD);
 		query.setHighlight(true);
 		
-		query.setHighlightSimplePre("<b><u>");
-		query.setHighlightSimplePost("</u></b>");
+		query.setHighlightSimplePre("<span class=\"sg-th\">");
+		query.setHighlightSimplePost("</span>");
 
 		
 		QueryResponse response = solrProxy.executeQuery(query);
@@ -147,6 +156,10 @@ public class WNSearcher {
 			 * Identifier
 			 */
 			String id  = (String)doc.getFieldValue("id");
+			
+			String pos = id.substring(0,1);
+			String posLabel = WNConstants.posMap.get(pos).getLabel();
+			
 			// change emboss to bold tag
 			String highlightedTerm = highlighting.get(id).get(SolrConstants.WORD_FIELD).get(0);
 						
@@ -163,16 +176,18 @@ public class WNSearcher {
 			 */
 			String synonyms  = (String)doc.getFieldValue(SolrConstants.SYNONYM_FIELD);
 //			jDoc.put("synonyms", synonyms);
-			String value = "<p style=\"font-size:10px;\">" + highlightedTerm + ": " + synonyms + "</br><i>Description:</i> " + desc + "</p>";
+			String value = "<div class=\"sg\"><span class=\"sg-t\">" 
+						+ highlightedTerm 
+						+ "</span><span class=\"sg-s\"> " + synonyms 
+						+ "</span><p class=\"sg-dg\"><span class=\"sg-dl\">Description:</span><span class=\"sg-d\"> " 
+						+ desc + "</span></p></div>";
 			jDoc.put("synonyms", value);
 
 			/* 
 			 * Hypernym
 			 */
 			String hypernym  = (String)doc.getFieldValue(SolrConstants.HYPERNYM_FIELD);
-			jDoc.put("hypernym", hypernym);
-			
-			
+			jDoc.put("hypernym", hypernym  + " (" + posLabel + ")");
 			
 			jArray.put(jDoc);
 

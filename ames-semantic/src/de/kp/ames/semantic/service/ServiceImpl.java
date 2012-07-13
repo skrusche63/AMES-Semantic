@@ -1,4 +1,5 @@
 package de.kp.ames.semantic.service;
+
 /**
  *	Copyright 2012 Dr. Krusche & Partner PartG
  *
@@ -21,6 +22,9 @@ package de.kp.ames.semantic.service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -29,63 +33,78 @@ import de.kp.ames.semantic.http.RequestMethod;
 
 /**
  * @author Stefan Krusche (krusche@dr-kruscheundpartner.de)
- *
+ * 
  */
 
 public class ServiceImpl implements Service {
 
 	/*
-	 * RequestMethod describes the method to be
-	 * invoked by the actual request
+	 * RequestMethod describes the method to be invoked by the actual request
 	 */
 	protected RequestMethod method;
-	
+
 	/**
 	 * Constructor
 	 */
 	public ServiceImpl() {
 	}
 
-	
-	/* (non-Javadoc)
-	 * @see de.kp.ames.web.core.service.Service#setMethod(de.kp.ames.web.core.method.RequestMethod)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * de.kp.ames.web.core.service.Service#setMethod(de.kp.ames.web.core.method
+	 * .RequestMethod)
 	 */
 	public void setMethod(RequestMethod method) {
-		this.method = method;		
+		this.method = method;
 	}
-	
-	/* (non-Javadoc)
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see de.kp.ames.web.core.service.Service#getMethod()
 	 */
 	public RequestMethod getMethod() {
 		return this.method;
 	}
 
-	/* (non-Javadoc)
-	 * @see de.kp.ames.web.core.service.Service#processRequest(de.kp.ames.web.core.RequestContext)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * de.kp.ames.web.core.service.Service#processRequest(de.kp.ames.web.core
+	 * .RequestContext)
 	 */
-	public void processRequest(RequestContext requestContext) {		
-	}
-	
-	/* (non-Javadoc)
-	 * @see de.kp.ames.web.core.service.Service#sendJSONResponse(java.lang.String, javax.servlet.http.HttpServletResponse)
-	 */
-	public void sendJSONResponse(String content, HttpServletResponse response) throws IOException {
-		if (content == null) return;
-		sendResponse(content, "application/json", response);		
+	public void processRequest(RequestContext requestContext) {
 	}
 
-	
-	/* (non-Javadoc)
-	 * @see de.kp.ames.web.core.service.Service#sendResponse(java.lang.String, java.lang.String, javax.servlet.http.HttpServletResponse)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * de.kp.ames.web.core.service.Service#sendJSONResponse(java.lang.String,
+	 * javax.servlet.http.HttpServletResponse)
+	 */
+	public void sendJSONResponse(String content, HttpServletResponse response) throws IOException {
+		if (content == null)
+			return;
+		sendResponse(content, "application/json", response);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see de.kp.ames.web.core.service.Service#sendResponse(java.lang.String,
+	 * java.lang.String, javax.servlet.http.HttpServletResponse)
 	 */
 	public void sendResponse(String content, String mimetype, HttpServletResponse response) throws IOException {
 
-		response.setStatus( HttpServletResponse.SC_OK );
+		response.setStatus(HttpServletResponse.SC_OK);
 		response.setCharacterEncoding("UTF-8");
-		
+
 		response.setContentType(mimetype);
-		
+
 		byte[] bytes = content.getBytes("UTF-8");
 		response.setContentLength(bytes.length);
 
@@ -97,22 +116,23 @@ public class ServiceImpl implements Service {
 	}
 
 	/**
-	 * A helper method to retrieve the request data (POST) 
-	 * in terms of a String representation
+	 * A helper method to retrieve the request data (POST) in terms of a String
+	 * representation
 	 * 
 	 * @param ctx
 	 * @return
 	 */
 	protected String getRequestData(RequestContext ctx) {
-		
-		StringBuffer buffer = null;;
+
+		StringBuffer buffer = null;
+		;
 
 		try {
 			BufferedReader reader = ctx.getRequest().getReader();
 			buffer = new StringBuffer();
-			
+
 			String line;
-			while ( (line = reader.readLine()) != null) {
+			while ((line = reader.readLine()) != null) {
 				buffer.append(line);
 			}
 
@@ -121,20 +141,23 @@ public class ServiceImpl implements Service {
 		}
 
 		return (buffer == null) ? null : buffer.toString();
-		
+
 	}
-	
-	
-	/* (non-Javadoc)
-	 * @see de.kp.ames.web.core.service.Service#sendBadResponse(java.lang.String, int, javax.servlet.http.HttpServletResponse)
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * de.kp.ames.web.core.service.Service#sendBadResponse(java.lang.String,
+	 * int, javax.servlet.http.HttpServletResponse)
 	 */
 	public void sendErrorResponse(String content, int errorStatus, HttpServletResponse response) throws IOException {
 
 		response.setStatus(errorStatus);
 		response.setCharacterEncoding("UTF-8");
-		
+
 		response.setContentType("text/plain");
-		
+
 		byte[] bytes = content.getBytes("UTF-8");
 		response.setContentLength(bytes.length);
 
@@ -142,7 +165,7 @@ public class ServiceImpl implements Service {
 
 		os.write(bytes);
 		os.close();
-		
+
 	}
 
 	/**
@@ -153,9 +176,16 @@ public class ServiceImpl implements Service {
 	 */
 	protected void sendBadRequest(RequestContext ctx, Throwable e) {
 
-		String errorMessage = "[" + this.getClass().getName() + "] " + e.getMessage();
+		// TODO: xxx pa debug stacktrace
+		Writer result = new StringWriter();
+		PrintWriter printWriter = new PrintWriter(result);
+		e.printStackTrace(printWriter);
+
+		String errorMessage = "[" + this.getClass().getName() + "] " + result.toString();
+		// String errorMessage = "[" + this.getClass().getName() + "] " +
+		// e.getMessage();
 		int errorStatus = HttpServletResponse.SC_BAD_REQUEST;
-		
+
 		try {
 			sendErrorResponse(errorMessage, errorStatus, ctx.getResponse());
 
@@ -174,7 +204,7 @@ public class ServiceImpl implements Service {
 
 		String errorMessage = "[" + this.getClass().getName() + "] Required parameters not provided.";
 		int errorStatus = HttpServletResponse.SC_NOT_IMPLEMENTED;
-		
+
 		try {
 			sendErrorResponse(errorMessage, errorStatus, ctx.getResponse());
 
@@ -184,6 +214,4 @@ public class ServiceImpl implements Service {
 
 	}
 
-
-	
 }

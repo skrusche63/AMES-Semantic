@@ -10,8 +10,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
+
 import net.didion.jwnl.data.POS;
 import net.didion.jwnl.data.Pointer;
 import net.didion.jwnl.data.PointerType;
@@ -22,22 +22,11 @@ import org.apache.solr.common.SolrInputDocument;
 
 import de.kp.ames.semantic.solr.SolrConstants;
 import de.kp.ames.semantic.solr.SolrProxy;
+import de.kp.ames.semantic.wn.config.WNConstants;
 import de.kp.ames.semantic.wn.data.WNLoader;
 
 public class WNConsumer {
 	
-	private static HashMap<String, POS> posMap;
-	
-	static {
-	
-		posMap = new HashMap<String, POS>();
-	
-		posMap.put("3", POS.ADJECTIVE);
-		posMap.put("4", POS.ADVERB);
-		posMap.put("1", POS.NOUN);
-		posMap.put("2", POS.VERB);
-	
-	}
 			
 	/**
 	 * @throws Exception
@@ -108,7 +97,7 @@ public class WNConsumer {
 			/*
 			 * Retrieve synset from wordnet-3.0
 			 */
-			POS wnPos = posMap.containsKey(pos) ? posMap.get(pos) : null;
+			POS wnPos = WNConstants.posMap.containsKey(pos) ? WNConstants.posMap.get(pos) : null;
 			
 			if (wnPos == null) continue;
 			
@@ -138,15 +127,22 @@ public class WNConsumer {
 				SolrInputDocument document = new SolrInputDocument();
 				
 				/* 
-				 * Identifier
+				 * category
 				 */
-				document.addField("id", synset.getKey() + ":" + word.getIndex());
+				document.addField(SolrConstants.CATEGORY_FIELD, "sgwn"); // SUGGEST WORDNET
+
+				/* 
+				 * Identifier
+				 * 		PartOfSpeach [1-4] : Synset-id [0-9]{8}: Number of word [0-9]+
+				 */
+				document.addField("id", WNConstants.posReverseMap.get(word.getPOS()) + ":" + synset.getKey() + ":" + word.getIndex());
 				
 				/* 
 				 * Word
 				 */
 				document.addField(SolrConstants.WORD_FIELD, beautify(word.getLemma()));
-				
+
+
 				/*
 				 * Description
 				 */

@@ -8,10 +8,16 @@ package de.kp.ames.semantic.solr;
 
 public class SolrConstants {
 
-	public static String HYPERNYM_FIELD = "hypernym_kpf";
-	public static String SYNONYM_FIELD  = "synonym_kpf";
+	// Solr field definitions
+	public static final String HYPERNYM_FIELD = "hypernym_kpf";
+	public static final String SYNONYM_FIELD  = "synonym_kpf";
 
-	public static String DESC_FIELD = "desc_kpf";
-	public static String WORD_FIELD = "word_kpg";
+	public static final String DESC_FIELD = "desc_kpf";
+	public static final String WORD_FIELD = "word_kpg";
+
+	public static final String CATEGORY_FIELD = "cat";
+
+	// value definitions
+	public static final String CATEGORY_VALUE = "sgwn";
 
 }
