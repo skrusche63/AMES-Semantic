@@ -18,6 +18,8 @@ package de.kp.ames.semantic.http;
  *
  */
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -74,6 +76,26 @@ public class RequestMethod {
 	}
 	
 	/**
+	 * 
+	 * @param str
+	 * @return
+	 * 
+	 * A utility function to decode incoming query parameter values, 
+	 * Or use an existing utility class like
+	 * http://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/org/apache/http/client/utils/URLEncodedUtils.html
+	 */
+    public String urlDecode(String str) {
+        if (str == null) {
+            return null;
+        }
+        try {
+            return URLDecoder.decode(str, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return str;
+        }
+    }
+	
+	/**
 	 * @param token
 	 * @throws Exception
 	 */
@@ -84,7 +106,7 @@ public class RequestMethod {
 		if (tokens.length != 2) throw new Exception(ATTRIBUTE_ERROR);
 		
 		String key = tokens[0];
-		String val = tokens[1];
+		String val = urlDecode(tokens[1]);
 		
 		attributes.put(key, val);
 		

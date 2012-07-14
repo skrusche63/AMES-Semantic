@@ -129,10 +129,10 @@ public class WNConsumer {
 				/* 
 				 * category
 				 */
-				document.addField(SolrConstants.CATEGORY_FIELD, "sgwn"); // SUGGEST WORDNET
+				document.addField(SolrConstants.CATEGORY_FIELD, SolrConstants.CATEGORY_SUGGEST_VALUE); // SUGGEST WORDNET
 
 				/* 
-				 * Identifier
+				 * Unique Identifier build of POS and SYNSET-ID
 				 * 		PartOfSpeach [1-4] : Synset-id [0-9]{8}: Number of word [0-9]+
 				 */
 				document.addField("id", WNConstants.posReverseMap.get(word.getPOS()) + ":" + synset.getKey() + ":" + word.getIndex());
@@ -164,7 +164,7 @@ public class WNConsumer {
 			
 		}
 		
-		System.out.println("doc count: " + documents.size());
+		System.out.println("\ndoc count: " + documents.size());
 		
 		SolrProxy.getInstance().createEntries(documents);
 		
@@ -173,15 +173,15 @@ public class WNConsumer {
 	private static String getSynonyms(Word[] words) {
 		
 		if (words.length == 1) {
-			return "(Synonyms: " + words[0].getLemma() + ")";
+			return words[0].getLemma();
 		}
 		
-		String synonyms = "(Synonyms: " + words[0].getLemma();
+		String synonyms = words[0].getLemma();
 		for (int i=1; i < words.length; i++) {
 			synonyms += ", " + words[i].getLemma();
 		}
 
-		return synonyms + ")";
+		return synonyms;
 
 	}
 

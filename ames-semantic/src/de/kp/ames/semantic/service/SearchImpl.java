@@ -68,7 +68,7 @@ public class SearchImpl extends ServiceImpl {
 			 */
 			String query = this.method.getAttribute("query");
 			String start = "0"; //this.method.getAttribute("_startRow");
-			String limit = "30"; //this.method.getAttribute("_endRow");
+			String limit = "20"; //this.method.getAttribute("_endRow");
 			
 			if ((query == null) || (start == null) || (limit == null)) {
 				this.sendNotImplemented(ctx);

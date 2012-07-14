@@ -14,10 +14,12 @@ public class SolrConstants {
 
 	public static final String DESC_FIELD = "desc_kpf";
 	public static final String WORD_FIELD = "word_kpg";
+	public static final String TITLE_FIELD = "title";
 
 	public static final String CATEGORY_FIELD = "cat";
 
 	// value definitions
-	public static final String CATEGORY_VALUE = "sgwn";
+	public static final String CATEGORY_SUGGEST_VALUE = "sgwn"; // suggest wordnet
+	public static final String CATEGORY_RESULT_VALUE = "rwp";   // result wikipedia  
 
 }
