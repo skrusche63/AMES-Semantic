@@ -49,8 +49,9 @@ public class WNSearcher {
 		// query term weights are prepared from suggest already
 		query.setQuery(qs);
 		
+		// this query settings can be moved to an own RequestHandler too
 		query.setParam("defType", "edismax");
-		// querz field weights
+		// query field weights
 		query.setParam("qf", "title^20.0 description^0.3");
 		query.setParam("q.op", "OR");
 		
@@ -59,6 +60,7 @@ public class WNSearcher {
 		 * category "cat" field
 		 */
 		// TODO: reindex wikipedia content with category first
+		// in the mean time, exclude (-cat:sgwn) all documents from WordNet suggest feed
 		query.setFilterQueries("-"+SolrConstants.CATEGORY_FIELD + ":" + SolrConstants.CATEGORY_SUGGEST_VALUE);
 //		query.setFilterQueries(SolrConstants.CATEGORY_FIELD + ":" + SolrConstants.CATEGORY_RESULT_VALUE);
 
@@ -68,6 +70,7 @@ public class WNSearcher {
 
 		query.setHighlightSimplePre("<span class=\"sg-th\">");
 		query.setHighlightSimplePost("</span>");
+		query.setHighlightSnippets(3);
 
 		QueryResponse response = solrProxy.executeQuery(query);
 		SolrDocumentList docs = response.getResults();
@@ -122,9 +125,9 @@ public class WNSearcher {
 			if (highlighting.get(id).containsKey("description")) {
 				ArrayList<String> hls = (ArrayList<String>) highlighting.get(id).get("description");
 				for (String hl : hls) {
-					highlightedDescription += "... " + hl;
+					highlightedDescription += " ... " + hl;
 				}
-				highlightedDescription += "...";
+				highlightedDescription += " ...";
 			} else {
 				highlightedDescription = description;
 			}
@@ -141,6 +144,10 @@ public class WNSearcher {
 								"<p class=\"sg-dg\">" + 
 									"<span class=\"sg-dl\">Id:</span>" +
 									"<span class=\"sg-d\"> " + id + "</span>" +
+								"</p>" +
+								"<p class=\"sg-dg\">" + 
+									"<span class=\"sg-dl\">Link: </span>" +
+									"<a class=\"sg-lk\" target=\"_blank\" href=\"http://en.wikipedia.org/wiki/" + title.replace(" ", "_") + "\">" + title + "</a>" +
 								"</p>" +
 							"</div>";
 			jDoc.put("result", value);
@@ -210,6 +217,7 @@ public class WNSearcher {
 			 * Identifier
 			 */
 			String id = (String) doc.getFieldValue("id");
+			jDoc.put("id", id);
 
 			String pos = id.substring(0, 1);
 			String posLabel = WNConstants.posMap.get(pos).getLabel();
@@ -270,7 +278,7 @@ public class WNSearcher {
 			 */
 			String synonymBoosts = "\"" + synonyms.replace(", ", "\"^10 OR \"") + "\"^10"; 
 			String queryString = (String) doc.getFieldValue("textsuggest");
-			jDoc.put("qs", "+\"" + queryString + "\"^50 OR " +
+			jDoc.put("qs", "+\"" + queryString + "\"^100 OR " +
 					"\"" + hypernym + "\"^5 OR " +
 					synonymBoosts					
 					);
