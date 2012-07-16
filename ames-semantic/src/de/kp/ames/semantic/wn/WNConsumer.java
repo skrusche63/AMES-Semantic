@@ -140,7 +140,8 @@ public class WNConsumer {
 				/* 
 				 * Word
 				 */
-				document.addField(SolrConstants.WORD_FIELD, beautify(word.getLemma()));
+//				document.addField(SolrConstants.WORD_FIELD, beautify(word.getLemma()));
+				document.addField("textquery", beautify(word.getLemma()));
 
 
 				/*
