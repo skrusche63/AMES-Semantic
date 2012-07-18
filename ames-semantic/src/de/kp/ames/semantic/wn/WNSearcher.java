@@ -219,13 +219,8 @@ public class WNSearcher {
 			String id = (String) doc.getFieldValue("id");
 			jDoc.put("id", id);
 
-			String pos = id.substring(0, 1);
-			String posLabel = WNConstants.posMap.get(pos).getLabel();
-
-			// change emboss to bold tag
-//			String highlightedTerm = highlighting.get(id).get(SolrConstants.WORD_FIELD).get(0);
 			/*
-			 * highlighted field
+			 * highlighted term field
 			 */
 			String highlightedTerm = null;
 			if (highlighting.get(id).containsKey("textsuggest")) {
@@ -240,10 +235,9 @@ public class WNSearcher {
 			 * Description
 			 */
 			String desc = (String) doc.getFieldValue(SolrConstants.DESC_FIELD);
-			jDoc.put("desc", desc);
 
 			/*
-			 * result field
+			 * HTML rendered Result field
 			 */
 			String synonyms = (String) doc.getFieldValue(SolrConstants.SYNONYM_FIELD);
 			String value = "<div class=\"sg\">" + 
@@ -262,8 +256,12 @@ public class WNSearcher {
 			/*
 			 * Hypernym
 			 */
+			// extract POS from id
+			String pos = id.substring(0, 1);
+			String posLabel = WNConstants.posMap.get(pos).getLabel();
+
 			String hypernym = (String) doc.getFieldValue(SolrConstants.HYPERNYM_FIELD);
-			jDoc.put("hypernym", hypernym + " (" + posLabel + ")");
+			jDoc.put("hypernym", hypernym + " (" + posLabel.toLowerCase() + ")");
 
 			/*
 			 * Query String for selection
@@ -285,15 +283,81 @@ public class WNSearcher {
 			// raw query string for TextWidget update
 			jDoc.put("qsraw", queryString);
 
-
+			jDoc.put("type", "suggest");
+			
 			jArray.put(jDoc);
 
 		}
+		
+		/*
+		 * group entries by hypernym
+		 */
+		ArrayList<String> groupHeaders = new ArrayList<String>(); 
+		ArrayList<ArrayList<JSONObject>> groupedList = new ArrayList<ArrayList<JSONObject>>(); 
+		for (int i=0; i < jArray.length(); i++) {
+			JSONObject doc = (JSONObject) jArray.get(i);
+			String hypernym = doc.getString("hypernym");
+			
+			if (groupHeaders.contains(hypernym)) {
+				// add doc to groupedList with index number as hypernym in groupHeaders
+				int index = groupHeaders.indexOf(hypernym);
+				groupedList.get(index).add(doc);
+			} else {
+				// add new group header
+				groupHeaders.add(hypernym);
+				// add new empty list
+				groupedList.add(new ArrayList<JSONObject>());
+				// add doc to last new empty list
+				ArrayList<JSONObject> lastList = groupedList.get(groupedList.size()-1); 
+				JSONObject jGroupHeaderDoc = new JSONObject();
+				// generate unique key from first doc with g: prefix
+				jGroupHeaderDoc.put("id", "g:" + doc.getString("id"));
+				jGroupHeaderDoc.put("result", "<div class=\"sgh\">" + 
+							"<span class=\"sgh-s\"> " + hypernym + "#injectTermCount#</span>" +
+					"</div>");
+				
+				jGroupHeaderDoc.put("type", "group");
+				jGroupHeaderDoc.put("qsraw", hypernym);
+				// add pseudo group entry
+				lastList.add(jGroupHeaderDoc);
+				
+				// add doc after pseudo group entry
+				lastList.add(doc);
+			}
+		}
 
+		/* 
+		 * flatten result list
+		 */
+		JSONArray jGroupedJArray = new JSONArray();
+		// depth first
+		int count = 0;
+		for (ArrayList<JSONObject> groupList: groupedList) {
+
+			/*
+			 * Manipulate GroupHeader with term count 
+			 * inject information about term count of grouped terms
+			 * if group have more then one term
+			 */
+			JSONObject jGroupHeader = groupList.get(0);
+			jGroupHeader.put("result", jGroupHeader
+					.getString("result")
+					.replace("#injectTermCount#", (groupList.size()>2) ? " [" + (groupList.size()-1)+ " terms]" : ""));
+
+			for (JSONObject doc : groupList) {
+				
+				// TODO: add for debug row index
+				doc.put("qsraw", "" + count + ": " + doc.getString("qsraw"));
+				
+				count++;
+				jGroupedJArray.put(doc);
+			}
+		}
+		
 		/*
 		 * Render result
 		 */
-		return jArray.toString();
+		return jGroupedJArray.toString();
 		// return createGrid(jArray);
 
 	}
