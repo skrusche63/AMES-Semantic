@@ -28,7 +28,7 @@ public class WNSearcher {
 	}
 
 
-	public String search(String searchTerm, String start, String limit) throws Exception {
+	public String search(String searchTerm, String start, String end) throws Exception {
 
 		/*
 		 * Build Apache Solr query
@@ -39,7 +39,8 @@ public class WNSearcher {
 		 * Paging support from Apache Solr
 		 */
 		int s = Integer.valueOf(start);
-		int r = Integer.valueOf(limit);
+		int e = Integer.valueOf(end);
+		int r = e - s;
 
 		query.setStart(s);
 		query.setRows(r);
@@ -74,6 +75,7 @@ public class WNSearcher {
 
 		QueryResponse response = solrProxy.executeQuery(query);
 		SolrDocumentList docs = response.getResults();
+		long total = docs.getNumFound();
 
 		Map<String, Map<String, List<String>>> highlighting = response.getHighlighting();
 
@@ -97,7 +99,7 @@ public class WNSearcher {
 			jDoc.put("id", id);
 
 			/*
-			 * Title
+			 * Title (multivalue field)
 			 */
 			String title = (String) ((ArrayList)doc.getFieldValue(SolrConstants.TITLE_FIELD)).get(0);
 			if (title == null) {
@@ -158,10 +160,12 @@ public class WNSearcher {
 		/*
 		 * Render result
 		 */
-		return jArray.toString();
+//		return jArray.toString();
+		return createGrid(jArray, start, end, String.valueOf(total));
+
 	}
 
-	public String suggest(String prefix, String start, String limit) throws Exception {
+	public String suggest(String prefix, String start, String end) throws Exception {
 
 		/*
 		 * Build Apache Solr query
@@ -172,7 +176,9 @@ public class WNSearcher {
 		 * Paging support from Apache Solr
 		 */
 		int s = Integer.valueOf(start);
-		int r = Integer.valueOf(limit);
+		int e = Integer.valueOf(end);
+		int r = e - s;
+		
 
 		query.setStart(s);
 		query.setRows(r);
@@ -197,7 +203,9 @@ public class WNSearcher {
 		query.setHighlightSimplePost("</span>");
 
 		QueryResponse response = solrProxy.executeQuery(query);
+		
 		SolrDocumentList docs = response.getResults();
+		long total = docs.getNumFound();
 
 		Map<String, Map<String, List<String>>> highlighting = response.getHighlighting();
 
@@ -317,6 +325,7 @@ public class WNSearcher {
 					"</div>");
 				
 				jGroupHeaderDoc.put("type", "group");
+				jGroupHeaderDoc.put("enabled", false);
 				jGroupHeaderDoc.put("qsraw", hypernym);
 				// add pseudo group entry
 				lastList.add(jGroupHeaderDoc);
@@ -357,22 +366,25 @@ public class WNSearcher {
 		/*
 		 * Render result
 		 */
-		return jGroupedJArray.toString();
-		// return createGrid(jArray);
+//		return jGroupedJArray.toString();
+		// with group headers 
+		 return createGrid(jGroupedJArray, start, end, String.valueOf(total));
+
+		// without group headers 
+//		return createGrid(jArray, start, end, String.valueOf(total));
 
 	}
 
-	public String createGrid(JSONArray jArray) throws Exception {
+	public String createGrid(JSONArray jArray, String start, String end, String total) throws Exception {
 
 		JSONObject jResponse = new JSONObject();
-		int card = jArray.length();
 
 		try {
 
 			jResponse.put(ScConstants.SC_STATUS, 0);
-			jResponse.put(ScConstants.SC_TOTALROWS, card);
-			// jResponse.put(ScConstants.SC_STARTROW, 0);
-			// jResponse.put(ScConstants.SC_ENDROW, card);
+			jResponse.put(ScConstants.SC_TOTALROWS, total);
+//			jResponse.put(ScConstants.SC_STARTROW, start);
+//			jResponse.put(ScConstants.SC_ENDROW, end);
 
 			jResponse.put(ScConstants.SC_DATA, jArray);
 
@@ -382,7 +394,7 @@ public class WNSearcher {
 		} finally {
 		}
 
-		return jResponse.toString(4);
+		return new JSONObject().put("response", jResponse).toString();
 
 	}
 

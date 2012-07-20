@@ -42,10 +42,12 @@ public class SearchImpl extends ServiceImpl {
 			 * Call suggest method
 			 */
 			String query = this.method.getAttribute("query");
-			String start = "0"; //this.method.getAttribute("_startRow");
-			String limit = "30"; //this.method.getAttribute("_endRow");
+			String start = this.method.getAttribute("_startRow");
+			String end = this.method.getAttribute("_endRow");
 			
-			if ((query == null) || (start == null) || (limit == null)) {
+			
+			
+			if ((query == null) || (start == null) || (end == null)) {
 				this.sendNotImplemented(ctx);
 				
 			} else {
@@ -54,7 +56,7 @@ public class SearchImpl extends ServiceImpl {
 					/*
 					 * JSON response
 					 */
-					String content = suggest(query, start, limit);
+					String content = suggest(query, start, end);
 					this.sendJSONResponse(content, ctx.getResponse());
 					
 				} catch (Exception e) {
@@ -67,10 +69,10 @@ public class SearchImpl extends ServiceImpl {
 			 * Call searchmethod
 			 */
 			String query = this.method.getAttribute("query");
-			String start = "0"; //this.method.getAttribute("_startRow");
-			String limit = "20"; //this.method.getAttribute("_endRow");
+			String start = this.method.getAttribute("_startRow");
+			String end = this.method.getAttribute("_endRow");
 			
-			if ((query == null) || (start == null) || (limit == null)) {
+			if ((query == null) || (start == null) || (end == null)) {
 				this.sendNotImplemented(ctx);
 				
 			} else {
@@ -79,7 +81,7 @@ public class SearchImpl extends ServiceImpl {
 					/*
 					 * JSON response
 					 */
-					String content = search(query, start, limit);
+					String content = search(query, start, end);
 					this.sendJSONResponse(content, ctx.getResponse());
 					
 				} catch (Exception e) {
@@ -101,8 +103,8 @@ public class SearchImpl extends ServiceImpl {
 	 * @return
 	 * @throws Exception
 	 */
-	private String suggest(String query, String start, String limit) throws Exception {
-		return new WNSearcher().suggest(query, start, limit);
+	private String suggest(String query, String start, String end) throws Exception {
+		return new WNSearcher().suggest(query, start, end);
 	}
 
 	/**
@@ -110,12 +112,12 @@ public class SearchImpl extends ServiceImpl {
 	 * 
 	 * @param query
 	 * @param start
-	 * @param limit
+	 * @param end
 	 * @return
 	 * @throws Exception
 	 */
-	private String search(String query, String start, String limit) throws Exception {
-		return new WNSearcher().search(query, start, limit);
+	private String search(String query, String start, String end) throws Exception {
+		return new WNSearcher().search(query, start, end);
 	}
 	
 }
