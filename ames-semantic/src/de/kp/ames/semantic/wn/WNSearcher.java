@@ -137,22 +137,25 @@ public class WNSearcher {
 			/*
 			 * result field
 			 */
-			String value = "<div class=\"sg\">" + 
+			String resultString = "<div class=\"sg\">" + 
 								"<span class=\"sg-t\">" + highlightedTitle + "</span>" +
 								"<p class=\"sg-dg\">" + 
 									"<span class=\"sg-dl\">Description:</span>" + 
 									"<span class=\"sg-d\"> " + highlightedDescription + "</span>" + 
 								"</p>" + 
-								"<p class=\"sg-dg\">" + 
-									"<span class=\"sg-dl\">Id:</span>" +
-									"<span class=\"sg-d\"> " + id + "</span>" +
-								"</p>" +
-								"<p class=\"sg-dg\">" + 
-									"<span class=\"sg-dl\">Link: </span>" +
-									"<a class=\"sg-lk\" target=\"_blank\" href=\"http://en.wikipedia.org/wiki/" + title.replace(" ", "_") + "\">" + title + "</a>" +
-								"</p>" +
 							"</div>";
-			jDoc.put("result", value);
+			jDoc.put("result", resultString);
+			String descString = "<div class=\"sg\">" + 
+					"<p class=\"sg-dg\">" + 
+						"<span class=\"sg-dl\">Id:</span>" +
+						"<span class=\"sg-d\"> " + id + "</span>" +
+					"</p>" +
+					"<p class=\"sg-dg\">" + 
+						"<span class=\"sg-dl\">Link: </span>" +
+						"<a class=\"sg-lk\" target=\"_blank\" href=\"http://en.wikipedia.org/wiki/" + title.replace(" ", "_") + "\">" + title + "</a>" +
+					"</p>" +
+				"</div>";
+			jDoc.put("desc", descString);
 
 			jArray.put(jDoc);
 		}
@@ -355,8 +358,8 @@ public class WNSearcher {
 
 			for (JSONObject doc : groupList) {
 				
-				// TODO: add for debug row index
-				doc.put("qsraw", "" + count + ": " + doc.getString("qsraw"));
+//				// TODO: add row index for debug 
+//				doc.put("qsraw", "" + count + ": " + doc.getString("qsraw"));
 				
 				count++;
 				jGroupedJArray.put(doc);
