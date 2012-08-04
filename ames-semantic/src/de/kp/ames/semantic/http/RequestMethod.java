@@ -108,6 +108,8 @@ public class RequestMethod {
 		String key = tokens[0];
 		String val = urlDecode(tokens[1]);
 		
+		System.out.println("====> k<" + key + "> v<" + val + ">");
+		
 		attributes.put(key, val);
 		
 	}

@@ -4,25 +4,27 @@ import de.kp.ames.semantic.http.RequestContext;
 import de.kp.ames.semantic.wn.WNSearcher;
 
 /**
- *	Copyright 2012 Dr. Krusche & Partner PartG
- *
- *	AMES-Web-Service is free software: you can redistribute it and/or 
- *	modify it under the terms of the GNU General Public License 
- *	as published by the Free Software Foundation, either version 3 of 
- *	the License, or (at your option) any later version.
- *
- *	AMES- Web-Service is distributed in the hope that it will be useful,
- *	but WITHOUT ANY WARRANTY; without even the implied warranty of
- *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * Copyright 2012 Dr. Krusche & Partner PartG
  * 
- *  See the GNU General Public License for more details. 
- *
- *	You should have received a copy of the GNU General Public License
- *	along with this software. If not, see <http://www.gnu.org/licenses/>.
- *
+ * AMES-Web-Service is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
+ * 
+ * AMES- Web-Service is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.
+ * 
+ * See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * this software. If not, see <http://www.gnu.org/licenses/>.
+ * 
  */
 
 public class SearchImpl extends ServiceImpl {
+	
+	static int count = 0; 
 
 	/**
 	 * Constructor
@@ -31,68 +33,108 @@ public class SearchImpl extends ServiceImpl {
 		super();
 	}
 
-	/* (non-Javadoc)
-	 * @see de.kp.ames.web.core.service.ServiceImpl#processRequest(de.kp.ames.web.http.RequestContext)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * de.kp.ames.web.core.service.ServiceImpl#processRequest(de.kp.ames.web
+	 * .http.RequestContext)
 	 */
-	public void processRequest(RequestContext ctx) {		
+	public void processRequest(RequestContext ctx) {
 
 		String methodName = this.method.getName();
-		if (methodName.equals("suggest")) {			
+		if (!methodName.equals("get")) {
+			this.sendBadRequest(ctx, new Throwable("[SearchImpl] only method=get supported"));
+		}
+
+		String type = this.method.getAttribute("type");
+		System.out.println("====> processRequest: " + type);
+		
+		if (type.equals("suggest")) {
+
 			/*
 			 * Call suggest method
 			 */
 			String query = this.method.getAttribute("query");
 			String start = this.method.getAttribute("_startRow");
 			String end = this.method.getAttribute("_endRow");
-			
-			
-			
+
 			if ((query == null) || (start == null) || (end == null)) {
 				this.sendNotImplemented(ctx);
-				
+
 			} else {
-				
+
 				try {
 					/*
 					 * JSON response
 					 */
 					String content = suggest(query, start, end);
 					this.sendJSONResponse(content, ctx.getResponse());
-					
+
 				} catch (Exception e) {
 					this.sendBadRequest(ctx, e);
 
 				}
 			}
-		} else if (methodName.equals("search")) {
+		} else if (type.equals("search")) {
 			/*
 			 * Call searchmethod
 			 */
 			String query = this.method.getAttribute("query");
 			String start = this.method.getAttribute("_startRow");
 			String end = this.method.getAttribute("_endRow");
-			
+
 			if ((query == null) || (start == null) || (end == null)) {
 				this.sendNotImplemented(ctx);
-				
+
 			} else {
-				
+
 				try {
 					/*
 					 * JSON response
 					 */
 					String content = search(query, start, end);
 					this.sendJSONResponse(content, ctx.getResponse());
-					
+
 				} catch (Exception e) {
 					this.sendBadRequest(ctx, e);
 
 				}
-			}			
+			}
+		} else if (type.equals("similar")) {
+			String source = this.method.getAttribute("source");
+			// TODO: implement similar search
+			if ((source == null)) {
+				this.sendNotImplemented(ctx);
+
+			} else {
+				
+				try {
+					/*
+					 * JSON response
+					 */
+//					String content = similar(query, source, start, end);
+					count++;
+					String content = "{\"id\":\"1\", \"name\":\"Core" + count + 
+							"\", \"data\":[], \"children\":[" +
+							"{\"id\":\"2\", \"name\":\"Leaf1\", \"data\":[], \"children\":[]}, " +
+							"{\"id\":\"3\", \"name\":\"Leaf2\", \"data\":[], \"children\":[]}, " +
+							"{\"id\":\"4\", \"name\":\"Leaf3\", \"data\":[], \"children\":[]}, " +
+							"{\"id\":\"5\", \"name\":\"Leaf4\", \"data\":[], \"children\":[" +
+								"{\"id\":\"6\", \"name\":\"SubLeaf1\", \"data\":[], \"children\":[]}, " +
+								"{\"id\":\"7\", \"name\":\"SubLeaf2\", \"data\":[], \"children\":[]} " +
+							"] }" + 
+						"] }";
+					this.sendJSONResponse(content, ctx.getResponse());
+
+				} catch (Exception e) {
+					this.sendBadRequest(ctx, e);
+
+				}
+			}
 		}
 
 	}
-
 
 	/**
 	 * Term suggestion returns a JSON object as response
@@ -119,5 +161,5 @@ public class SearchImpl extends ServiceImpl {
 	private String search(String query, String start, String end) throws Exception {
 		return new WNSearcher().search(query, start, end);
 	}
-	
+
 }
