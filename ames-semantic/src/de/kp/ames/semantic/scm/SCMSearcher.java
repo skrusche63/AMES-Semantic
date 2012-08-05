@@ -1,10 +1,13 @@
-package de.kp.ames.semantic.wn;
+package de.kp.ames.semantic.scm;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
@@ -15,24 +18,32 @@ import org.json.JSONObject;
 import de.kp.ames.semantic.globals.ScConstants;
 import de.kp.ames.semantic.solr.SolrConstants;
 import de.kp.ames.semantic.solr.SolrProxy;
-import de.kp.ames.semantic.wn.config.WNConstants;
 
-public class WNSearcher {
+public class SCMSearcher {
 
-	private static final String REPLACE_POSLABEL_COUNT = "@@POS_COUNT@@";
-	private static final String REPLACE_POSLABEL_PLURALSUFFIX = "@@POS_PLURALSUFFIX@@";
 	/*
 	 * Reference to SolrProxy
 	 */
 	private SolrProxy solrProxy;
+	private Integer MAX_SIMILARITY_LEVEL = 4;
+	private Integer MAX_SIMILARITY_LEAVES = 5;
 
-	public WNSearcher() {
+	public SCMSearcher() {
 		solrProxy = SolrProxy.getInstance();
 	}
 
-	public String similar(String query, String rootName) {
-		// TODO Auto-generated method stub
-		return null;
+	/**
+	 * Query is uid from focused record
+	 * This query processes a recursive query till max level is reached
+	 * and responds with a JSONObject compatible with thejit HyperTree  
+	 * 
+	 * @param uid
+	 * @return
+	 * @throws Exception
+	 */
+	public String similar(String uid, String rootName) throws Exception {
+
+		return hypertree(uid, rootName);
 	}
 
 	public String search(String searchTerm, String start, String end) throws Exception {
@@ -60,23 +71,16 @@ public class WNSearcher {
 		// this query settings can be moved to an own RequestHandler too
 		query.setParam("defType", "edismax");
 		// query field weights
-		query.setParam("qf", "title^20.0 description^0.3");
+		query.setParam("qf", "tags_kpg^20.0 description^0.3");
+//		query.setParam("qf", "title^20.0 description^0.3");
 		query.setParam("q.op", "OR");
 
 		/*
 		 * set filter for a specific set of indexed documents within Solr by
 		 * category "cat" field
 		 */
-		// TODO: reindex wikipedia content with category first
-		// in the mean time, exclude (-cat:sgwn) all documents from WordNet
-		// suggest feed
-		query.setFilterQueries("-" + SolrConstants.CATEGORY_FIELD + ":(" + 
-				SolrConstants.CATEGORY_SUGGEST_WN_VALUE + " OR " + 
-				SolrConstants.CATEGORY_SUGGEST_SCM_VALUE + " OR " + 
-				SolrConstants.CATEGORY_RESULT_SCM_VALUE + ")"
-				);
-		// query.setFilterQueries(SolrConstants.CATEGORY_FIELD + ":" +
-		// SolrConstants.CATEGORY_RESULT_VALUE);
+		query.setFilterQueries(SolrConstants.CATEGORY_FIELD + ":" +
+				SolrConstants.CATEGORY_RESULT_SCM_VALUE);
 
 		query.addHighlightField(SolrConstants.TITLE_FIELD);
 		query.addHighlightField("description");
@@ -119,6 +123,7 @@ public class WNSearcher {
 				continue;
 			}
 			jDoc.put("title", title);
+			jDoc.put("name", doc.getFieldValue(SolrConstants.NAME_FIELD));
 
 			/*
 			 * Description
@@ -148,15 +153,28 @@ public class WNSearcher {
 			/*
 			 * result field
 			 */
-			String resultString = "<div class=\"sg\">" + "<span class=\"sg-t\">" + highlightedTitle + "</span>"
-					+ "<p class=\"sg-dg\">" + "<span class=\"sg-dl\">Description:</span>" + "<span class=\"sg-d\"> "
-					+ highlightedDescription + "</span>" + "</p>" + "</div>";
+			String resultString = "" +
+					"<div class=\"sg\">" + 
+						"<span class=\"sg-t\">" + highlightedTitle + "</span>" +
+						"<p class=\"sg-dg\">" + 
+							"<span class=\"sg-dl\">Description:</span>" + 
+							"<span class=\"sg-d\"> " + highlightedDescription + "</span>" + 
+						"</p>" + 
+					"</div>";
 			jDoc.put("result", resultString);
-			String descString = "<div class=\"sg\">" + "<p class=\"sg-dg\">" + "<span class=\"sg-dl\">Id:</span>"
-					+ "<span class=\"sg-d\"> " + id + "</span>" + "</p>" + "<p class=\"sg-dg\">"
-					+ "<span class=\"sg-dl\">Link: </span>"
-					+ "<a class=\"sg-lk\" target=\"_blank\" href=\"http://en.wikipedia.org/wiki/"
-					+ title.replace(" ", "_") + "\">" + title + "</a>" + "</p>" + "</div>";
+			
+			String descString = "" +
+				"<div class=\"sg\">" + 
+					"<p class=\"sg-dg\">" + 
+						"<span class=\"sg-dl\">Id:</span>" + 
+						"<span class=\"sg-d\"> " + id + "</span>" + 
+					"</p>" + 
+					"<p class=\"sg-dg\">" + 
+						"<span class=\"sg-dl\">Metric: </span>" + 
+						"<a class=\"sg-lk\" target=\"_blank\" href=\"http://en.wikipedia.org/wiki/" + 
+							title.replace(" ", "_") + "\">" + title + "</a>" + 
+					"</p>" + 
+				"</div>";
 			jDoc.put("desc", descString);
 
 			jArray.put(jDoc);
@@ -197,7 +215,7 @@ public class WNSearcher {
 		 * set filter for a specific set of indexed documents within Solr by
 		 * category "cat" field
 		 */
-		query.setFilterQueries(SolrConstants.CATEGORY_FIELD + ":" + SolrConstants.CATEGORY_SUGGEST_WN_VALUE);
+		query.setFilterQueries(SolrConstants.CATEGORY_FIELD + ":" + SolrConstants.CATEGORY_SUGGEST_SCM_VALUE);
 
 		// query.addHighlightField(SolrConstants.WORD_FIELD);
 		query.addHighlightField("textsuggest");
@@ -244,30 +262,20 @@ public class WNSearcher {
 			jDoc.put("term", highlightedTerm);
 
 			/*
-			 * Description
-			 */
-			String desc = (String) doc.getFieldValue(SolrConstants.DESC_FIELD);
-
-			/*
 			 * HTML rendered Result field
 			 */
 			String synonyms = (String) doc.getFieldValue(SolrConstants.SYNONYM_FIELD);
 			String value = "<div class=\"sg\">" + "<span class=\"sg-t\">" + highlightedTerm + "</span>"
-					+ "<p class=\"sg-dg\">" + "<span class=\"sg-dl\">Synonyms:</span>" + "<span class=\"sg-s\"> "
+					+ "<p class=\"sg-dg\">" + "<span class=\"sg-dl\">Related:</span>" + "<span class=\"sg-s\"> "
 					+ synonyms + "</span>" + "</p>" + "<p class=\"sg-dg\">"
-					+ "<span class=\"sg-dl\">Description:</span>" + "<span class=\"sg-d\"> " + desc + "</span>"
 					+ "</p>" + "</div>";
 			jDoc.put("result", value);
 
 			/*
 			 * Hypernym
 			 */
-			// extract POS from id
-			String pos = id.substring(0, 1);
-			String posLabel = WNConstants.posMap.get(pos).getLabel();
-
 			String hypernym = (String) doc.getFieldValue(SolrConstants.HYPERNYM_FIELD);
-			jDoc.put("hypernym", hypernym + " (" + REPLACE_POSLABEL_COUNT + posLabel.toLowerCase() + REPLACE_POSLABEL_PLURALSUFFIX+ ")");
+			jDoc.put("hypernym", hypernym);
 
 			/*
 			 * Query String for selection
@@ -336,37 +344,17 @@ public class WNSearcher {
 		 */
 		JSONArray jGroupedJArray = new JSONArray();
 		// depth first
-		int count = 0;
 		for (ArrayList<JSONObject> groupList : groupedList) {
 
-			/*
-			 * Manipulate GroupHeader with term count inject information about
-			 * term count of grouped terms if group have more then one term
-			 */
 			JSONObject jGroupHeader = groupList.get(0);
 			
-			/*
-			 * wordnet specific display of POS count 
-			 */
-			String posLabelCount = "";
-			String posLabelPluralSuffix = "";
-			if (groupList.size() > 2) {
-				posLabelCount = (groupList.size()-1) + " ";
-				posLabelPluralSuffix = "s";
-			}
 			jGroupHeader.put(
 					"result",
 					jGroupHeader.getString("result")
-						.replace(REPLACE_POSLABEL_COUNT, posLabelCount)
-						.replace(REPLACE_POSLABEL_PLURALSUFFIX, posLabelPluralSuffix));
+					);
 
 			
 			for (JSONObject doc : groupList) {
-
-				// DEBUG: add row index for debug
-				// doc.put("qsraw", "" + count + ": " + doc.getString("qsraw"));
-
-				count++;
 				jGroupedJArray.put(doc);
 			}
 		}
@@ -403,6 +391,138 @@ public class WNSearcher {
 		}
 
 		return new JSONObject().put("response", jResponse).toString();
+
+	}
+
+	/************************************************************************
+	 * 
+	 * HYPERTREE HYPERTREE HYPERTREE HYPERTREE HYPERTREE
+	 * @param rootName 
+	 * 
+	 ***********************************************************************/
+
+	public String hypertree(String uid, String rootName) throws Exception {
+
+		Set<String> cache = new HashSet<String>();
+		Integer level = 0;
+
+		/*
+		 * define root node
+		 */
+		JSONObject jRootDocument = new JSONObject();
+		jRootDocument.put("id", "0");
+		jRootDocument.put("name", rootName);
+		jRootDocument.put("data", new JSONArray());
+		
+		// register root uid to avoid infinite loops
+		cache.add(uid);
+		
+		JSONArray jHypertreeChildren = getJHypertree(uid, level, cache);
+
+		// this 'children' parameter is a MUST
+		jRootDocument.put("children", jHypertreeChildren);
+
+		return jRootDocument.toString();
+
+	}
+
+	// this method retrieves the respective solr document
+	// as a JSON representation
+
+	private JSONArray getJHypertree(String uid, Integer level, Set<String> cache) throws Exception {
+
+
+		JSONArray jChildren = new JSONArray();
+		
+
+		
+		// update level
+		level = level + 1;
+		String debugIdent = StringUtils.repeat("..", level); 
+
+		/*
+		 * Build Apache Solr query
+		 */
+		SolrQuery query = new SolrQuery();
+
+		/*
+		 * Paging support from Apache Solr
+		 */
+		int s = 0;
+		int r = 2 * MAX_SIMILARITY_LEAVES; // ask for more to fill up the duplicates
+
+		query.setStart(s);
+		query.setRows(r);
+		
+		// choose suggest requesthandler
+		query.setQueryType("/mlt");
+
+		/*
+		 *  quoted query due to colon conflicts on solr, it cannot separate
+		 *  id: from following uid
+		 *  &q=id:urn:de:kp:ames:scm:ADF:af613363 
+		 */
+		
+		String searchTerm = "id:\"" + uid + "\"";
+		query.setQuery(searchTerm);
+		
+		// MLT more like this parameters
+		query.setParam("mlt.fl", "tags_kpg");
+		query.setParam("mlt.mintf", "1");
+		query.setParam("mlt.mindf", "2");
+		query.setParam("mlt.match.include", "false");
+		// minimize result size
+		query.setFields("id", "name", "title");
+		
+		QueryResponse response = solrProxy.executeQuery(query);
+		SolrDocumentList docs = response.getResults();
+		
+		if (docs == null) return jChildren;
+
+		Iterator<SolrDocument> iter = docs.iterator();
+		int childrenCount = 0;
+		while (iter.hasNext()) {
+
+			if (childrenCount == MAX_SIMILARITY_LEAVES)
+				// children count is satisfied, so we can skip the additional docs
+				break;
+			
+			SolrDocument doc = iter.next();
+			String rid = (String) doc.getFieldValue("id");
+			
+
+			if (cache.contains(rid)) {
+				// System.out.println(debugIdent + "skip: " + level + " n> "  + doc.getFieldValue("name") + " / " + rid);
+				// skip relations to already traversed nodes
+				continue;
+			} 
+			
+			cache.add(rid);
+			//System.out.println(debugIdent + " cch: " + level + " c> "  + cache.size());
+			
+			JSONObject jDocument = new JSONObject();
+			jDocument.put("id", rid);
+			jDocument.put("name", (String) doc.getFieldValue("name"));
+			jDocument.put("data", new JSONArray());
+
+			//System.out.println(debugIdent + " add: " + level + " n> "  + doc.getFieldValue("name") + " / " + rid);
+
+			
+			if (level < MAX_SIMILARITY_LEVEL) {
+				JSONArray jRelatedChildren = getJHypertree(rid, level, cache);
+				// this 'children' parameter is a MUST
+				jDocument.put("children", jRelatedChildren);
+
+			} else {
+				jDocument.put("children", new JSONArray());
+			}
+			
+			// add ourselve to children
+			jChildren.put(jDocument);
+			childrenCount++;
+		}
+
+		return jChildren;
 
 	}
 

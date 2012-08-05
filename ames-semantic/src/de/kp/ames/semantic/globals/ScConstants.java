@@ -1,4 +1,4 @@
-package de.kp.ames.semantic.wn;
+package de.kp.ames.semantic.globals;
 /**
  *	Copyright 2012 Dr. Krusche & Partner PartG
  *

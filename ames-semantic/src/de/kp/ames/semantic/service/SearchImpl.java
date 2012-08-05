@@ -1,6 +1,7 @@
 package de.kp.ames.semantic.service;
 
 import de.kp.ames.semantic.http.RequestContext;
+import de.kp.ames.semantic.scm.SCMSearcher;
 import de.kp.ames.semantic.wn.WNSearcher;
 
 /**
@@ -47,6 +48,16 @@ public class SearchImpl extends ServiceImpl {
 			this.sendBadRequest(ctx, new Throwable("[SearchImpl] only method=get supported"));
 		}
 
+		/*
+		 * set search use case by source: wn or scm 
+		 */
+		String source = this.method.getAttribute("source");
+
+		if (source == null || !(source.equals("wn") || source.equals("scm"))) {
+			System.out.println("====> processRequest: source not set or not scm | wn: " + source);
+			this.sendNotImplemented(ctx);
+		}
+
 		String type = this.method.getAttribute("type");
 		System.out.println("====> processRequest: " + type);
 		
@@ -68,7 +79,7 @@ public class SearchImpl extends ServiceImpl {
 					/*
 					 * JSON response
 					 */
-					String content = suggest(query, start, end);
+					String content = suggest(source, query, start, end);
 					this.sendJSONResponse(content, ctx.getResponse());
 
 				} catch (Exception e) {
@@ -93,7 +104,7 @@ public class SearchImpl extends ServiceImpl {
 					/*
 					 * JSON response
 					 */
-					String content = search(query, start, end);
+					String content = search(source, query, start, end);
 					this.sendJSONResponse(content, ctx.getResponse());
 
 				} catch (Exception e) {
@@ -102,29 +113,18 @@ public class SearchImpl extends ServiceImpl {
 				}
 			}
 		} else if (type.equals("similar")) {
-			String source = this.method.getAttribute("source");
-			// TODO: implement similar search
-			if ((source == null)) {
+			String query = this.method.getAttribute("query");
+			String name = this.method.getAttribute("name");
+			if ((query == null) || (name == null)) {
 				this.sendNotImplemented(ctx);
 
 			} else {
-				
 				try {
 					/*
 					 * JSON response
 					 */
-//					String content = similar(query, source, start, end);
-					count++;
-					String content = "{\"id\":\"1\", \"name\":\"Core" + count + 
-							"\", \"data\":[], \"children\":[" +
-							"{\"id\":\"2\", \"name\":\"Leaf1\", \"data\":[], \"children\":[]}, " +
-							"{\"id\":\"3\", \"name\":\"Leaf2\", \"data\":[], \"children\":[]}, " +
-							"{\"id\":\"4\", \"name\":\"Leaf3\", \"data\":[], \"children\":[]}, " +
-							"{\"id\":\"5\", \"name\":\"Leaf4\", \"data\":[], \"children\":[" +
-								"{\"id\":\"6\", \"name\":\"SubLeaf1\", \"data\":[], \"children\":[]}, " +
-								"{\"id\":\"7\", \"name\":\"SubLeaf2\", \"data\":[], \"children\":[]} " +
-							"] }" + 
-						"] }";
+
+					String content = similar(source, query, name);
 					this.sendJSONResponse(content, ctx.getResponse());
 
 				} catch (Exception e) {
@@ -133,33 +133,66 @@ public class SearchImpl extends ServiceImpl {
 				}
 			}
 		}
-
 	}
 
 	/**
 	 * Term suggestion returns a JSON object as response
 	 * 
-	 * @param query
-	 * @param start
-	 * @param limit
-	 * @return
-	 * @throws Exception
-	 */
-	private String suggest(String query, String start, String end) throws Exception {
-		return new WNSearcher().suggest(query, start, end);
-	}
-
-	/**
-	 * Term suggestion returns a JSON object as response
-	 * 
+	 * @param source 
 	 * @param query
 	 * @param start
 	 * @param end
 	 * @return
 	 * @throws Exception
 	 */
-	private String search(String query, String start, String end) throws Exception {
-		return new WNSearcher().search(query, start, end);
+	private String suggest(String source, String query, String start, String end) throws Exception {
+		String result = null;
+		if (source.equals("wn"))
+			result = new WNSearcher().suggest(query, start, end);
+		else if (source.equals("scm"))
+			result = new SCMSearcher().suggest(query, start, end);
+		
+		return result;
 	}
 
+	/**
+	 * Term suggestion returns a JSON object as response
+	 * 
+	 * @param source
+	 * @param query
+	 * @param start
+	 * @param end
+	 * @return
+	 * @throws Exception
+	 */
+	private String search(String source, String query, String start, String end) throws Exception {
+		String result = null;
+		if (source.equals("wn"))
+			result = new WNSearcher().search(query, start, end);
+		else if (source.equals("scm"))
+			result = new SCMSearcher().search(query, start, end);
+		
+		return result;
+
+	}
+
+	/**
+	 * Term suggestion returns a JSON object as response
+	 * 
+	 * @param source
+	 * @param query
+	 * @param name
+	 * @return
+	 * @throws Exception
+	 */
+	private String similar(String source, String query, String name) throws Exception {
+		String result = null;
+		if (source.equals("wn"))
+			result = new WNSearcher().similar(query, name);
+		else if (source.equals("scm"))
+			result = new SCMSearcher().similar(query, name);
+		
+		return result;
+
+	}
 }

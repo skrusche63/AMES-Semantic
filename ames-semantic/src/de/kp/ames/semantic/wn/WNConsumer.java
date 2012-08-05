@@ -129,7 +129,7 @@ public class WNConsumer {
 				/* 
 				 * category
 				 */
-				document.addField(SolrConstants.CATEGORY_FIELD, SolrConstants.CATEGORY_SUGGEST_VALUE); // SUGGEST WORDNET
+				document.addField(SolrConstants.CATEGORY_FIELD, SolrConstants.CATEGORY_SUGGEST_WN_VALUE); // SUGGEST WORDNET
 
 				/* 
 				 * Unique Identifier build of POS and SYNSET-ID

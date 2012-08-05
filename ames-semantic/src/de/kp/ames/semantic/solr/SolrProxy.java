@@ -77,12 +77,15 @@ public class SolrProxy {
 	 * @return
 	 */
 	public boolean delete() {
-
+		return delete("*:*");
+	}
+	
+	public boolean delete(String query) {
 		boolean deleted = false;
 
 		try {
 
-			server.deleteByQuery( "*:*" );
+			server.deleteByQuery(query);
 			deleted = true;
 		
 		} catch (Exception e) {
