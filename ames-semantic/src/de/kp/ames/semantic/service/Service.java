@@ -62,7 +62,15 @@ public interface Service {
 	 * @throws IOException
 	 */
 	public void sendJSONResponse(String content, HttpServletResponse response) throws IOException;
-	
+
+	/**
+	 * 
+	 * @param bytes
+	 * @param response
+	 * @throws IOException
+	 */
+	public void sendZIPResponse(byte[] bytes, HttpServletResponse response) throws IOException;
+
 
 	/**
 	 * @param content
@@ -71,5 +79,14 @@ public interface Service {
 	 * @throws IOException
 	 */
 	public void sendResponse(String content, String mimetype, HttpServletResponse response) throws IOException;
+
+	/**
+	 * 
+	 * @param bytes
+	 * @param mimetype
+	 * @param response
+	 * @throws IOException
+	 */
+	public void sendResponse(byte[] bytes, String mimetype, HttpServletResponse response) throws IOException;
 
 }

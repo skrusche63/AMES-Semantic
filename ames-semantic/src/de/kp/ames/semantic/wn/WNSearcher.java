@@ -406,4 +406,9 @@ public class WNSearcher {
 
 	}
 
+	public String checkout(JSONArray jCheckout) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

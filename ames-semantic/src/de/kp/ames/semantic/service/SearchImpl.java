@@ -1,5 +1,8 @@
 package de.kp.ames.semantic.service;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
 import de.kp.ames.semantic.http.RequestContext;
 import de.kp.ames.semantic.scm.SCMSearcher;
 import de.kp.ames.semantic.wn.WNSearcher;
@@ -44,8 +47,8 @@ public class SearchImpl extends ServiceImpl {
 	public void processRequest(RequestContext ctx) {
 
 		String methodName = this.method.getName();
-		if (!methodName.equals("get")) {
-			this.sendBadRequest(ctx, new Throwable("[SearchImpl] only method=get supported"));
+		if (!(methodName.equals("get") || methodName.equals("apply"))) {
+			this.sendBadRequest(ctx, new Throwable("[SearchImpl] only method=get & apply supported"));
 		}
 
 		/*
@@ -70,7 +73,7 @@ public class SearchImpl extends ServiceImpl {
 			String start = this.method.getAttribute("_startRow");
 			String end = this.method.getAttribute("_endRow");
 
-			if ((query == null) || (start == null) || (end == null)) {
+			if ((!methodName.equals("get")) || (query == null) || (start == null) || (end == null)) {
 				this.sendNotImplemented(ctx);
 
 			} else {
@@ -95,7 +98,7 @@ public class SearchImpl extends ServiceImpl {
 			String start = this.method.getAttribute("_startRow");
 			String end = this.method.getAttribute("_endRow");
 
-			if ((query == null) || (start == null) || (end == null)) {
+			if ((!methodName.equals("get")) || (query == null) || (start == null) || (end == null)) {
 				this.sendNotImplemented(ctx);
 
 			} else {
@@ -115,7 +118,7 @@ public class SearchImpl extends ServiceImpl {
 		} else if (type.equals("similar")) {
 			String query = this.method.getAttribute("query");
 			String name = this.method.getAttribute("name");
-			if ((query == null) || (name == null)) {
+			if ((!methodName.equals("get")) || (query == null) || (name == null)) {
 				this.sendNotImplemented(ctx);
 
 			} else {
@@ -126,6 +129,58 @@ public class SearchImpl extends ServiceImpl {
 
 					String content = similar(source, query, name);
 					this.sendJSONResponse(content, ctx.getResponse());
+
+				} catch (Exception e) {
+					this.sendBadRequest(ctx, e);
+
+				}
+			}
+		} else if (type.equals("checkout")) {
+
+			// access post data
+			String data = this.getRequestData(ctx);
+			
+			System.out.println("====> SearchImpl.checkout> data.len: " + data.length());
+				
+			if ((!methodName.equals("apply")) || (data == null)) {
+				this.sendNotImplemented(ctx);
+
+			} else {
+				try {
+					/*
+					 * JSON response
+					 */
+
+					String content = checkout(source, data);
+					this.sendJSONResponse(content, ctx.getResponse());
+
+				} catch (Exception e) {
+					this.sendBadRequest(ctx, e);
+
+				}
+			}
+		} else if (type.equals("download")) {
+
+			// access post data when send with doApply
+			//	String data = this.getRequestData(ctx);
+			
+			// access post data, from named FORM field
+			String data = ctx.getRequest().getParameter("hiddenField");
+			
+			System.out.println("====> SearchImpl.download> data.len: " + data.length());
+				
+			
+			if ((!methodName.equals("apply")) || (data == null)) {
+				this.sendNotImplemented(ctx);
+
+			} else {
+				try {
+					/*
+					 * JSON response
+					 */
+
+					byte[] bytes = download(source, data);
+					this.sendZIPResponse(bytes, ctx.getResponse());
 
 				} catch (Exception e) {
 					this.sendBadRequest(ctx, e);
@@ -156,7 +211,7 @@ public class SearchImpl extends ServiceImpl {
 	}
 
 	/**
-	 * Term suggestion returns a JSON object as response
+	 * Documents search based on suggestion returns a JSON object as response
 	 * 
 	 * @param source
 	 * @param query
@@ -177,7 +232,7 @@ public class SearchImpl extends ServiceImpl {
 	}
 
 	/**
-	 * Term suggestion returns a JSON object as response
+	 * Similar documents returns a JSON object as response
 	 * 
 	 * @param source
 	 * @param query
@@ -195,4 +250,45 @@ public class SearchImpl extends ServiceImpl {
 		return result;
 
 	}
+	
+	/**
+	 * Computes a checkout HTML-form and embeds it in a JSON object as response
+	 * 
+	 * @param source
+	 * @param data
+	 * @return
+	 * @throws Exception 
+	 */
+	private String checkout(String source, String data) throws Exception {
+		String result = null;
+		JSONArray jCheckout = new JSONArray(data);
+		if (source.equals("wn"))
+			result = new WNSearcher().checkout(jCheckout);
+		else if (source.equals("scm"))
+			result = new SCMSearcher().checkout(jCheckout);
+		
+		return result;
+	}
+
+	/**
+	 * Download all Java Module from a checkout as a ZIP response
+	 * 
+	 * @param source
+	 * @param data
+	 * @return
+	 * @throws Exception 
+	 */
+	private byte[] download(String source, String data) throws Exception {
+		byte[] bytes = null;
+		JSONArray jCheckout = new JSONArray(data);
+		if (source.equals("wn"))
+			// not implemented
+			return null;
+		else if (source.equals("scm"))
+			bytes = new SCMSearcher().download(jCheckout);
+		
+		return bytes;
+	}
+
+	
 }

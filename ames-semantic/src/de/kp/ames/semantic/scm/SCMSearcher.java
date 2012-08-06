@@ -1,11 +1,19 @@
 package de.kp.ames.semantic.scm;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -13,14 +21,17 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import de.kp.ames.semantic.Bundle;
 import de.kp.ames.semantic.globals.ScConstants;
 import de.kp.ames.semantic.solr.SolrConstants;
 import de.kp.ames.semantic.solr.SolrProxy;
 
 public class SCMSearcher {
-
+	
+	private static SuggestionLRUCache<String, Integer> suggestionLRUCache = new SuggestionLRUCache<String, Integer>(50, 100);
 	/*
 	 * Reference to SolrProxy
 	 */
@@ -28,10 +39,170 @@ public class SCMSearcher {
 	private Integer MAX_SIMILARITY_LEVEL = 4;
 	private Integer MAX_SIMILARITY_LEAVES = 5;
 
+	private static Bundle bundle = Bundle.getInstance();
+	private static String FILE_SEPARATOR = System.getProperty("file.separator");
+	
 	public SCMSearcher() {
 		solrProxy = SolrProxy.getInstance();
 	}
 
+	
+	/**
+	 * Process a Java-Module ZIP file representation of the cart
+	 * 
+	 * @param jCheckout
+	 * @return
+	 * @throws Exception 
+	 * @throws Exception
+	 */
+	public byte[] download(JSONArray jCheckout) throws Exception {
+
+    	System.out.println("====> SCMSearcher.download");
+
+		// generate HTML representation as readme
+		String semanticResearchReport = generateCheckoutHtml(jCheckout);
+		
+		List<String> ids = new ArrayList<String>();
+		for (int i = 0; i < jCheckout.length(); i++) {
+			JSONObject record = jCheckout.getJSONObject(i);
+			ids.add(record.getString("id"));
+		} 
+		
+		List<String> files = getAbsoluteFilenamesFormIds(ids);
+		byte[] zip = zipFiles(bundle.getString("ames.scm.root"), files, semanticResearchReport);
+
+    	System.out.println("====> SCMSearcher.download.zipFiles packed");
+
+		return zip;
+	}
+
+	@SuppressWarnings({ "unchecked" })
+	private List<String> getAbsoluteFilenamesFormIds(List<String> ids) throws Exception {
+		/*
+		 * Build Apache Solr query
+		 */
+		SolrQuery query = new SolrQuery();
+		/*
+		 *  concatenate quoted ids to searchTerm
+		 *  
+		 *  +id:("id1" "id2" "id3" "id4")
+		 */
+		
+		String searchTerm = "+id:(\"" + StringUtils.join(ids, "\" \"")+ "\")";
+		query.setQuery(searchTerm);
+		query.setFields("id", "exturi_kps");
+		query.setRows(ids.size());
+
+		QueryResponse response = solrProxy.executeQuery(query);
+		SolrDocumentList docs = response.getResults();
+		
+		Iterator<SolrDocument> iter = docs.iterator();
+		List<String> files = new ArrayList<String>();
+		while (iter.hasNext()) {
+
+			SolrDocument doc = iter.next();
+			files.add(((ArrayList<String>) doc.getFieldValue(SolrConstants.EXTURI_FIELD)).get(0));
+		}
+		
+    	System.out.println("======> SCMSearcher.download.getAbsoluteFilenamesFormIds: " + files.size());
+
+		return files;
+	}
+
+
+	/**
+     * Compress the given directory with all its files.
+     */
+    private byte[] zipFiles(String scmRootFolderName, List<String> files, String semanticResearchReport) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ZipOutputStream zos = new ZipOutputStream(baos);
+        //File scmRootFolder = new File(scmRootFolderName);
+        
+        /*
+         * write checkout report in root folder of zip
+         * 	SemanticResearchReport.html
+         */
+        zos.putNextEntry(new ZipEntry("SemanticResearchReport.html"));
+        zos.write(semanticResearchReport.getBytes());
+        zos.closeEntry();
+        
+        
+        byte bytes[] = new byte[2048];
+        
+        scmRootFolderName = makeOSDependantAbsoluteFileName(scmRootFolderName);
+ 
+        for (String fileName : files) {
+        	
+        	System.out.println("========> SCMSearcher.download.zipFiles: " + fileName);
+        	
+        	fileName = makeOSDependantAbsoluteFileName(fileName);
+        	
+            FileInputStream fis = new FileInputStream(fileName);
+            BufferedInputStream bis = new BufferedInputStream(fis);
+ 
+            zos.putNextEntry(new ZipEntry(getRelativeFileName(fileName, scmRootFolderName)));
+ 
+            int bytesRead;
+            while ((bytesRead = bis.read(bytes)) != -1) {
+                zos.write(bytes, 0, bytesRead);
+            }
+            zos.closeEntry();
+            bis.close();
+            fis.close();
+        }
+        zos.flush();
+        baos.flush();
+        zos.close();
+        baos.close();
+ 
+        return baos.toByteArray();
+    }
+
+
+	private String makeOSDependantAbsoluteFileName(String fileName) {
+		return fileName.replace("file:/", "").replace("/", SCMSearcher.FILE_SEPARATOR);
+	}
+	
+	private String getRelativeFileName(String fileName, String scmRootFolderName) {
+		String relativeFileName = fileName.replace(scmRootFolderName, "");
+		
+		System.out.println("========> SCMSearcher.download.zipFiles:getrelative " + relativeFileName);
+		if (relativeFileName.startsWith(FILE_SEPARATOR))
+			relativeFileName = relativeFileName.substring(1);
+
+		return relativeFileName;
+	}
+
+
+	/**
+	 * Process a server-side HTML representation of the cart
+	 * 
+	 * @param jCheckout
+	 * @return
+	 * @throws Exception
+	 */
+	public String checkout(JSONArray jCheckout) throws Exception {
+		
+		System.out.println("====> SCMSearcher.checkout: count: " + jCheckout.length());
+
+		String response = generateCheckoutHtml(jCheckout);
+	
+		return createCheckout(response.toString());
+	}
+
+
+	private String generateCheckoutHtml(JSONArray jCheckout) throws JSONException {
+		StringBuilder response = new StringBuilder();
+		response.append("<html><body><ul>");
+		for (int i = 0; i < jCheckout.length(); i++) {
+			JSONObject record = jCheckout.getJSONObject(i);
+			response.append("<li>suggestion: " + record.getString("suggest") + " / module:" + record.getString("choice") + "</li>");
+		} 
+		response.append("</ul></body></html>");
+		return response.toString();
+	}
+
+	
 	/**
 	 * Query is uid from focused record
 	 * This query processes a recursive query till max level is reached
@@ -124,6 +295,7 @@ public class SCMSearcher {
 			}
 			jDoc.put("title", title);
 			jDoc.put("name", doc.getFieldValue(SolrConstants.NAME_FIELD));
+			jDoc.put("source", doc.getFieldValue(SolrConstants.SOURCE_FIELD));
 
 			/*
 			 * Description
@@ -318,6 +490,8 @@ public class SCMSearcher {
 			} else {
 				// add new group header
 				groupHeaders.add(hypernym);
+				System.out.println("====> SCM.suggest: new group: <" + hypernym+ ">");
+
 				// add new empty list
 				groupedList.add(new ArrayList<JSONObject>());
 				// add doc to last new empty list
@@ -360,6 +534,27 @@ public class SCMSearcher {
 		}
 
 		/*
+		 * increase total count with additional group-headers count
+		 */
+		System.out.println("====> SCM.suggest: term: <" + prefix + "> s/e: " + s + "/" + e +" total: " + total + " groups: " + groupHeaders.size());
+		if (suggestionLRUCache.containsKey(prefix)) {
+//			if (groupHeaders.size() == 0) {
+//				// no additional headers
+//				total = suggestionLRUCache.get(prefix);
+//			} else {
+//				// paging search will add additional headers 
+//				total = suggestionLRUCache.get(prefix) + groupHeaders.size();
+//				suggestionLRUCache.put(prefix, (int) total);
+//			}
+			total = suggestionLRUCache.get(prefix);
+				
+		} else {
+			total = total + groupHeaders.size();
+			suggestionLRUCache.put(prefix, (int) total);
+		}
+		System.out.println("======> SCM.suggest: LRU total: " + total);
+
+		/*
 		 * Render result
 		 */
 		// return jGroupedJArray.toString();
@@ -391,6 +586,23 @@ public class SCMSearcher {
 		}
 
 		return new JSONObject().put("response", jResponse).toString();
+
+	}
+	
+	public String createCheckout(String checkoutPage) throws Exception {
+
+		JSONObject jResponse = new JSONObject();
+
+		try {
+			jResponse.put(ScConstants.SC_DATA, checkoutPage);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+
+		} finally {
+		}
+
+		return jResponse.toString();
 
 	}
 
@@ -480,10 +692,12 @@ public class SCMSearcher {
 		if (docs == null) return jChildren;
 
 		Iterator<SolrDocument> iter = docs.iterator();
-		int childrenCount = 0;
+		Map<String, JSONArray> childrenQueue = new HashMap<String, JSONArray>();
+		
+		int directChildrenCount = 0;
 		while (iter.hasNext()) {
 
-			if (childrenCount == MAX_SIMILARITY_LEAVES)
+			if (directChildrenCount == MAX_SIMILARITY_LEAVES)
 				// children count is satisfied, so we can skip the additional docs
 				break;
 			
@@ -504,23 +718,37 @@ public class SCMSearcher {
 			jDocument.put("id", rid);
 			jDocument.put("name", (String) doc.getFieldValue("name"));
 			jDocument.put("data", new JSONArray());
-
+			
+			// this 'children' parameter is a MUST
+			JSONArray jSubChildren = new JSONArray();
+			jDocument.put("children", jSubChildren);
+			childrenQueue.put(rid, jSubChildren);
+			
 			//System.out.println(debugIdent + " add: " + level + " n> "  + doc.getFieldValue("name") + " / " + rid);
 
 			
-			if (level < MAX_SIMILARITY_LEVEL) {
-				JSONArray jRelatedChildren = getJHypertree(rid, level, cache);
-				// this 'children' parameter is a MUST
-				jDocument.put("children", jRelatedChildren);
-
-			} else {
-				jDocument.put("children", new JSONArray());
-			}
-			
-			// add ourselve to children
+			// add ourselve to parent children
 			jChildren.put(jDocument);
-			childrenCount++;
+			directChildrenCount++;
 		}
+		
+		
+		if (level < MAX_SIMILARITY_LEVEL) {
+			Iterator<Entry<String, JSONArray>> it = childrenQueue.entrySet().iterator();
+			while (it.hasNext()) {
+				 Map.Entry<String, JSONArray> pairs = (Map.Entry<String, JSONArray>) it.next();
+				 String rid = pairs.getKey();
+				 JSONArray jSubChildren = pairs.getValue();
+
+				 JSONArray jRelatedChildren = getJHypertree(rid, level, cache);
+				 if (jRelatedChildren.length() > 0) {
+					for (int i = 0; i < jRelatedChildren.length(); i++) {
+						jSubChildren.put(i, jRelatedChildren.get(i));
+					} 
+				}
+			}
+		}
+
 
 		return jChildren;
 

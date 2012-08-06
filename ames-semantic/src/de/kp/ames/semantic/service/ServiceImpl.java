@@ -25,6 +25,9 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -94,18 +97,56 @@ public class ServiceImpl implements Service {
 
 	/*
 	 * (non-Javadoc)
-	 * 
-	 * @see de.kp.ames.web.core.service.Service#sendResponse(java.lang.String,
-	 * java.lang.String, javax.servlet.http.HttpServletResponse)
+	 * @see de.kp.ames.semantic.service.Service#sendZIPResponse(byte[], javax.servlet.http.HttpServletResponse)
+	 */
+	public void sendZIPResponse(byte[] bytes, HttpServletResponse response) throws IOException {
+		if (bytes == null)
+			return;
+		
+    	System.out.println("====> ServiceImpl.sendZIPResponse");
+
+    	String timestamp = createTimeStamp();
+		
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + timestamp + 
+				"-SemanticCheckout.zip\"");
+		
+    	System.out.println("======> ServiceImpl.sendZIPResponse ts: " + timestamp);
+
+		sendResponse(bytes, "application/zip", response);
+	}
+
+	private String createTimeStamp() {
+		Calendar cal = Calendar.getInstance();
+	    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd-HHmm");
+	    String timestamp = sdf.format(cal.getTime());
+		return timestamp;
+	}
+
+	
+	
+	/*
+	 * (non-Javadoc)
+	 * @see de.kp.ames.semantic.service.Service#sendResponse(java.lang.String, java.lang.String, javax.servlet.http.HttpServletResponse)
 	 */
 	public void sendResponse(String content, String mimetype, HttpServletResponse response) throws IOException {
+		byte[] bytes = content.getBytes("UTF-8");
+		sendResponse(bytes, mimetype, response);
+		
+	}
+	
+	/*
+	 * Direct interface for bytes for download support
+	 * 
+	 * (non-Javadoc)
+	 * @see de.kp.ames.semantic.service.Service#sendResponse(byte[], java.lang.String, javax.servlet.http.HttpServletResponse)
+	 */
+	public void sendResponse(byte[] bytes, String mimetype, HttpServletResponse response) throws IOException {
 
 		response.setStatus(HttpServletResponse.SC_OK);
 		response.setCharacterEncoding("UTF-8");
 
 		response.setContentType(mimetype);
 
-		byte[] bytes = content.getBytes("UTF-8");
 		response.setContentLength(bytes.length);
 
 		OutputStream os = response.getOutputStream();
