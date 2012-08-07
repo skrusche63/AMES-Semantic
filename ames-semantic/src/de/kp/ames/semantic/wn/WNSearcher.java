@@ -35,7 +35,7 @@ public class WNSearcher {
 		return null;
 	}
 
-	public String search(String searchTerm, String start, String end) throws Exception {
+	public String result(String searchTerm, String start, String end) throws Exception {
 
 		/*
 		 * Build Apache Solr query

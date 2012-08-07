@@ -107,7 +107,7 @@ public class SearchImpl extends ServiceImpl {
 					/*
 					 * JSON response
 					 */
-					String content = search(source, query, start, end);
+					String content = getResult(source, query, start, end);
 					this.sendJSONResponse(content, ctx.getResponse());
 
 				} catch (Exception e) {
@@ -127,7 +127,7 @@ public class SearchImpl extends ServiceImpl {
 					 * JSON response
 					 */
 
-					String content = similar(source, query, name);
+					String content = getSimilar(source, query, name);
 					this.sendJSONResponse(content, ctx.getResponse());
 
 				} catch (Exception e) {
@@ -151,7 +151,7 @@ public class SearchImpl extends ServiceImpl {
 					 * JSON response
 					 */
 
-					String content = checkout(source, data);
+					String content = getCheckout(source, data);
 					this.sendJSONResponse(content, ctx.getResponse());
 
 				} catch (Exception e) {
@@ -179,7 +179,7 @@ public class SearchImpl extends ServiceImpl {
 					 * JSON response
 					 */
 
-					byte[] bytes = download(source, data);
+					byte[] bytes = getDownload(source, data);
 					this.sendZIPResponse(bytes, ctx.getResponse());
 
 				} catch (Exception e) {
@@ -220,12 +220,12 @@ public class SearchImpl extends ServiceImpl {
 	 * @return
 	 * @throws Exception
 	 */
-	private String search(String source, String query, String start, String end) throws Exception {
+	private String getResult(String source, String query, String start, String end) throws Exception {
 		String result = null;
 		if (source.equals("wn"))
-			result = new WNSearcher().search(query, start, end);
+			result = new WNSearcher().result(query, start, end);
 		else if (source.equals("scm"))
-			result = new SCMSearcher().search(query, start, end);
+			result = new SCMSearcher().result(query, start, end);
 		
 		return result;
 
@@ -240,7 +240,7 @@ public class SearchImpl extends ServiceImpl {
 	 * @return
 	 * @throws Exception
 	 */
-	private String similar(String source, String query, String name) throws Exception {
+	private String getSimilar(String source, String query, String name) throws Exception {
 		String result = null;
 		if (source.equals("wn"))
 			result = new WNSearcher().similar(query, name);
@@ -259,7 +259,7 @@ public class SearchImpl extends ServiceImpl {
 	 * @return
 	 * @throws Exception 
 	 */
-	private String checkout(String source, String data) throws Exception {
+	private String getCheckout(String source, String data) throws Exception {
 		String result = null;
 		JSONArray jCheckout = new JSONArray(data);
 		if (source.equals("wn"))
@@ -278,7 +278,7 @@ public class SearchImpl extends ServiceImpl {
 	 * @return
 	 * @throws Exception 
 	 */
-	private byte[] download(String source, String data) throws Exception {
+	private byte[] getDownload(String source, String data) throws Exception {
 		byte[] bytes = null;
 		JSONArray jCheckout = new JSONArray(data);
 		if (source.equals("wn"))

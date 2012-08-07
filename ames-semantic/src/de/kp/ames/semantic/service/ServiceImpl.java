@@ -25,14 +25,12 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 
 import javax.servlet.http.HttpServletResponse;
 
 import de.kp.ames.semantic.http.RequestContext;
 import de.kp.ames.semantic.http.RequestMethod;
+import de.kp.ames.semantic.util.DateUtil;
 
 /**
  * @author Stefan Krusche (krusche@dr-kruscheundpartner.de)
@@ -105,7 +103,7 @@ public class ServiceImpl implements Service {
 		
     	System.out.println("====> ServiceImpl.sendZIPResponse");
 
-    	String timestamp = createTimeStamp();
+    	String timestamp = DateUtil.createTimeStamp("yyyyMMdd-HHmm");
 		
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + timestamp + 
 				"-SemanticCheckout.zip\"");
@@ -115,12 +113,6 @@ public class ServiceImpl implements Service {
 		sendResponse(bytes, "application/zip", response);
 	}
 
-	private String createTimeStamp() {
-		Calendar cal = Calendar.getInstance();
-	    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd-HHmm");
-	    String timestamp = sdf.format(cal.getTime());
-		return timestamp;
-	}
 
 	
 	
@@ -221,6 +213,8 @@ public class ServiceImpl implements Service {
 		Writer result = new StringWriter();
 		PrintWriter printWriter = new PrintWriter(result);
 		e.printStackTrace(printWriter);
+		// print to console
+		e.printStackTrace();
 
 		String errorMessage = "[" + this.getClass().getName() + "] " + result.toString();
 		// String errorMessage = "[" + this.getClass().getName() + "] " +
