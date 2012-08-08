@@ -209,7 +209,7 @@ public class RequestDispatcher extends HttpServlet {
 		int pos = path.lastIndexOf("/") + 1;
 		String sid = path.substring(pos);
 
-		System.out.println("requestURI: " + path + " sid: " + sid);
+		//System.out.println("requestURI: " + path + " sid: " + sid);
 
 		Service service = null;
 

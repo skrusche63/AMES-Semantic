@@ -1,6 +1,8 @@
 package de.kp.ames.semantic.scm.renderer;
 
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Map.Entry;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,10 +26,9 @@ public class SCMHtmlRenderer {
 				// raw highlight injection, because it contains tags from Solr
 				.span().classAttr("sg-t").raw(scm.getHighlightTextSuggest()).end()
 				.p().classAttr("sg-dg")
-					.span().classAttr("sg-dl").text("Related:").end()
+					.span().classAttr("sg-dl").text("Related annotations:").end()
 					.span().classAttr("sg-s").text(scm.getSynonyms()).end()
 				.end()
-				.p().classAttr("sg-dg")
 			.endAll();
 		String result = htmlWriter.getBuffer().toString();
 		return result;
@@ -65,21 +66,44 @@ public class SCMHtmlRenderer {
 	}
 
 
-	private static String getFlagForMetric(String metric) {
-		String flag = null;
-		if (metric.equals("low")) flag = "images/silk/flag_green.png";
-		else if (metric.equals("medium")) flag = "images/silk/flag_yellow.png";
-		else if (metric.equals("high")) flag = "images/silk/flag_red.png";
+	private static JSONObject getFlagForMetric(String metricName, String metricLevel) throws Exception {
+		JSONObject jMetric = new JSONObject();
 		
-		return flag;
+		if (metricLevel.equals("low")) {
+			jMetric.put("flag", "images/silk/flag_green.png");
+			jMetric.put("alt", "green flag");
+			if (metricName == "loc") {
+				jMetric.put("range", "1-100"); 
+			} else {
+				jMetric.put("range", "1-5");
+			}
+		} else if (metricLevel.equals("medium")) {
+			jMetric.put("flag", "images/silk/flag_yellow.png");
+			jMetric.put("alt", "yellow flag");
+			if (metricName == "loc") {
+				jMetric.put("range", "100-200"); 
+			} else {
+				jMetric.put("range", "5-10");
+			}
+
+		} else if (metricLevel.equals("high")) {
+			jMetric.put("flag", "images/silk/flag_red.png");
+			jMetric.put("alt", "red flag");
+			if (metricName == "loc") {
+				jMetric.put("range", ">200"); 
+			} else {
+				jMetric.put("range", ">10");
+			}
+
+		}
+		
+		return jMetric;
 	}
-	public static String getResultHtmlDescription(ResultObject scm) {
+	public static String getResultHtmlDescription(final ResultObject scm, final boolean detailed) throws Exception {
 		StringWriter htmlWriter;
-		Html html;
 		htmlWriter = new StringWriter();
-		html = new Html(htmlWriter);
-		html
-			.div().classAttr("sg")
+		new Html(htmlWriter) {{
+			div().classAttr("sg")
 				.p().classAttr("sg-dg")
 					.span().classAttr("sg-dl").text("SCM  Project:").end()
 					.span().classAttr("sg-d").text(scm.getSource()).end()
@@ -89,20 +113,54 @@ public class SCMHtmlRenderer {
 					.span().classAttr("sg-d").text(scm.getAnnotations()).end()
 				.end()
 				.p().classAttr("sg-dg")
-					.span().classAttr("sg-dl").text("Metrics: Used by other(").end()
+					.span().classAttr("sg-dl").text("Metrics: Imported by others(").end()
 					.span().classAttr("sg-d").text(scm.getMetricBacklinks().toUpperCase())
-						.img().src(getFlagForMetric(scm.getMetricBacklinks())).height("16")
+						.text(" " + getFlagForMetric("method", scm.getMetricBacklinks()).getString("range"))
+						.img()
+							.src(getFlagForMetric("backlink", scm.getMetricBacklinks()).getString("flag"))
+							.height("16")
+							.alt(getFlagForMetric("loc", scm.getMetricBacklinks()).getString("alt"))
+						.end()
 					.end()
 					.span().classAttr("sg-dl").text(") / Method count(").end()
 					.span().classAttr("sg-d").text(scm.getMetricMethodCount().toUpperCase())
-						.img().src(getFlagForMetric(scm.getMetricMethodCount())).height("16")
+						.text(" " + getFlagForMetric("method", scm.getMetricMethodCount()).getString("range"))
+						.img()
+							.src(getFlagForMetric("method", scm.getMetricMethodCount()).getString("flag"))
+							.height("16")
+							.alt(getFlagForMetric("loc", scm.getMetricMethodCount()).getString("alt"))
+						.end()
 					.end()	
-					.span().classAttr("sg-dl").text(") / LOC(").end()
+					.span().classAttr("sg-dl").text(") / Lines of Code(").end()
 					.span().classAttr("sg-d").text(scm.getMetricLOC().toUpperCase())
-						.img().src(getFlagForMetric(scm.getMetricLOC())).height("16")					
+						.text(" " + getFlagForMetric("loc", scm.getMetricLOC()).getString("range"))
+						.img()
+							.src(getFlagForMetric("loc", scm.getMetricLOC()).getString("flag"))
+							.height("16")
+							.alt(getFlagForMetric("loc", scm.getMetricLOC()).getString("alt"))
+							.end()		
 					.end()
 					.span().classAttr("sg-dl").text(")").end()
-			.endAll();
+				.end();
+			if (detailed) makeMethodList();
+			endAll();
+			done();
+		}
+			Html makeMethodList() throws Exception {
+				p().classAttr("sg-dg")
+					.span().classAttr("sg-dl").text("Methodnames:").end();
+					if (scm.getMethodNames().size() > 0) {
+			            ul();
+			            for (String methodName : scm.getMethodNames()) {
+		            		li().text(methodName).end();
+						}
+			            end();
+					} else {
+						span().classAttr("sg-d").text(" n/a").end();
+					}
+	            return end();
+	        }
+		};
 		return htmlWriter.getBuffer().toString();
 	}
 	

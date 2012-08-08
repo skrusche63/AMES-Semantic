@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 
@@ -62,7 +63,7 @@ public class SCMSearcher {
     	System.out.println("====> SCMSearcher.download");
 
 		// generate HTML representation as readme
-		String semanticResearchReport = generateCheckoutHtml(jCheckout);
+		String semanticResearchReport = generateCheckoutHtml(jCheckout, true);
 		
 		List<String> ids = new ArrayList<String>();
 		for (int i = 0; i < jCheckout.length(); i++) {
@@ -107,30 +108,110 @@ public class SCMSearcher {
 		
 		System.out.println("====> SCMSearcher.checkout: count: " + jCheckout.length());
 
-		String response = generateCheckoutHtml(jCheckout);
+		String response = generateCheckoutHtml(jCheckout, false);
 	
 		return createCheckout(response);
 	}
 
 
-	private String generateCheckoutHtml(final JSONArray jCheckout) throws Exception {
+	private Map<String, ResultObject> getDocsFromIds(List<String> ids) throws Exception {
+		Map<String, ResultObject>  resultDocMap = new HashMap<String, ResultObject>();
+		
+		QueryResponse response = queryDownloadCase(ids);
+		SolrDocumentList docs = response.getResults();
+		
+		Iterator<SolrDocument> iter = docs.iterator();
+		while (iter.hasNext()) {
+
+			SolrDocument doc = iter.next();
+			ResultObject scm = new ResultObject(doc);
+			resultDocMap.put(scm.getId(), scm);
+		}
+		
+
+		return resultDocMap;
+	}
+	
+	public String generateCheckoutHtml(final JSONArray jCheckout, final boolean detailed) throws Exception {
+		
+		final Map<String, ArrayList<String>> suggestionResultMap = new HashMap<String, ArrayList<String>>();
+		Set<String>  resultDocSet = new HashSet<String>();
+		
+		for (int i = 0; i < jCheckout.length(); i++) {
+			
+			JSONObject record = jCheckout.getJSONObject(i);
+			
+			String suggestion = record.getString("suggest");
+			String resultId = record.getString("id");
+			
+			if (!suggestionResultMap.containsKey(suggestion))
+				suggestionResultMap.put(suggestion, new ArrayList<String>());
+
+			suggestionResultMap.get(suggestion).add(resultId);
+			resultDocSet.add(resultId);
+		}
+		
+		final Map<String, ResultObject>  resultDocLookupMap = getDocsFromIds(new ArrayList<String>(resultDocSet));
 		
 		StringWriter htmlWriter;
 		htmlWriter = new StringWriter();
 		new Html(htmlWriter) {{
 			html();
 				body();
-					h1().text("Semantic Catalog: Research protocol (" + DateUtil.createTimeStamp("HH:mm dd. MMM yyyy") + ")").end();
-					makeModuleList(jCheckout);
+					if (detailed) h1().text("Semantic Source Code Catalog").end();
+					h2().text("Research Session Protocol").end();
+					h4()
+						.text("Generated session report from " + DateUtil.createTimeStamp("dd MMMMM yyyy HH:mm"))
+					.end();
+					
+					p()
+						.text("This report will list all your ADF modules of interest, " +
+								"structured by the semantic context of the suggestion. " +
+								"You can download this report and all its Java modules " +
+								"to your disk by the yellow \"compress-icon\" button in the window headline.")
+					.end();
+					
+					h3()
+						.text("Summary")
+					.end();
+					p()
+						.text("This report contains:")
+					.end();
+					int suggestionCount = suggestionResultMap.keySet().size();
+					int moduleCount = resultDocLookupMap.keySet().size();
+					ul()
+						.li().text(suggestionCount + " suggestion" + (suggestionCount==1 ? "" : "s")).end()
+						.li().text(moduleCount + " ADF module"  + (moduleCount==1 ? "" : "s")).end()
+					.end();
+					h3()
+						.text("List of modules structured by semantic context")
+					.end();
+					makeModuleList();
 			endAll();
 			done();
 		}
-			Html makeModuleList(JSONArray jCheckout) throws Exception {
-	             ul();
-	             for (int i = 0; i < jCheckout.length(); i++) {
-	            	 JSONObject record = jCheckout.getJSONObject(i);
-	                 li().raw(record.getString("suggest")).end();
-	             }
+			Html makeModuleList() throws Exception {
+	             ul().classAttr("sgc-suggest");
+	             for (Entry<String, ArrayList<String>> suggestionEntry : suggestionResultMap.entrySet()) {
+	            	 String suggestion = suggestionEntry.getKey();
+	            	 ArrayList<String> resultIds = suggestionEntry.getValue();
+	                 li()
+	                 	.div().classAttr("sgc-suggest-item")
+	                 		.raw(suggestion.replace("(", "(selected within context: "))
+	                 	.end();
+		                 ul().classAttr("sgc-result");
+		                 	for (String resultId : resultIds) {
+		                 		ResultObject scm = resultDocLookupMap.get(resultId);
+								li()
+									.div().classAttr("sgc-result-entry")
+										.text(scm.getName() + " (" + scm.getPackage() + ")")
+									.end()
+									.raw(SCMHtmlRenderer.getResultHtmlDescription(scm, true))
+								.end();
+							}
+		                 end();
+
+				}
 	             return end();
 	         }
 		};
@@ -208,6 +289,7 @@ public class SCMSearcher {
 			jDoc.put("title", title);
 			jDoc.put("name", scm.getName());
 			jDoc.put("source", scm.getSource());
+			jDoc.put("icon", "flag_green");
 
 			/*
 			 * result field (includes teaser: highlightedDescription)
@@ -217,7 +299,7 @@ public class SCMSearcher {
 			/*
 			 * detail "desc" field
 			 */
-			jDoc.put("desc", SCMHtmlRenderer.getResultHtmlDescription(scm));
+			jDoc.put("desc", SCMHtmlRenderer.getResultHtmlDescription(scm, false));
 
 			jArray.put(jDoc);
 		}
@@ -279,7 +361,7 @@ public class SCMSearcher {
 			String synonyms = scm.getSynonyms();
 			jDoc.put("result", SCMHtmlRenderer.getSuggestHtmlResult(scm));
 			
-			System.out.println("====> SCM.suggest:result HTML: " + jDoc.get("result") );
+			//System.out.println("====> SCM.suggest:result HTML: " + jDoc.get("result") );
 
 			/*
 			 * Hypernym
@@ -329,7 +411,7 @@ public class SCMSearcher {
 			} else {
 				// add new group header
 				groupHeaders.add(hypernym);
-				System.out.println("====> SCM.suggest: new group: <" + hypernym+ ">");
+				//System.out.println("====> SCM.suggest: new group: <" + hypernym+ ">");
 
 				// add new empty list
 				groupedList.add(new ArrayList<JSONObject>());
@@ -584,7 +666,7 @@ public class SCMSearcher {
 		
 		String searchTerm = "+id:(\"" + StringUtils.join(ids, "\" \"")+ "\")";
 		query.setQuery(searchTerm);
-		query.setFields("id", "exturi_kps");
+		//query.setFields("id", "exturi_kps");
 		query.setRows(ids.size());
 
 		QueryResponse response = solrProxy.executeQuery(query);

@@ -1,7 +1,7 @@
 package de.kp.ames.semantic.scm.model;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -38,6 +38,24 @@ public class ResultObject {
 		return (String) ((ArrayList) doc.getFieldValue(SolrConstants.TITLE_FIELD)).get(0);
 	}
 
+	/*
+	 * methodname is a multivalue field, only one value expected
+	 */
+	@SuppressWarnings("unchecked")
+	public List<String> getMethodNames() {
+		
+		List<String> methodNames = (ArrayList<String>) doc.getFieldValue("meth_kpg");
+		List<String> methodNamesFiltered = new ArrayList<String>();
+		
+		for (String methodName : methodNames) {
+			if (!(methodName.equals(getName())))
+				methodNamesFiltered.add(methodName);
+		}
+		Collections.sort(methodNamesFiltered);
+		
+		return methodNamesFiltered;
+	}
+
 	public String getDescription() {
 		return (String) doc.getFieldValue("description");
 	}
@@ -48,7 +66,7 @@ public class ResultObject {
 
 	public String getHighlightTitle() {
 		String highlighted = null;
-		if (highlighting.get(getId()).containsKey(SolrConstants.TITLE_FIELD)) {
+		if (!(highlighting==null) && highlighting.get(getId()).containsKey(SolrConstants.TITLE_FIELD)) {
 			highlighted = highlighting.get(getId()).get(SolrConstants.TITLE_FIELD).get(0);
 		} else {
 			highlighted = getTitle();
@@ -61,7 +79,7 @@ public class ResultObject {
 	 */
 	public String getHighlightDescription() {
 		String highlighted = "";
-		if (highlighting.get(getId()).containsKey("description")) {
+		if (!(highlighting==null) && highlighting.get(getId()).containsKey("description")) {
 			ArrayList<String> hls = (ArrayList<String>) highlighting.get(getId()).get("description");
 			for (String hl : hls) {
 				highlighted += " ... " + hl;
