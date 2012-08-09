@@ -31,7 +31,7 @@ public class WNSearcher {
 	}
 
 	public String similar(String query, String rootName) {
-		// TODO Auto-generated method stub
+		// to be implemented for WN use-case
 		return null;
 	}
 
@@ -113,7 +113,8 @@ public class WNSearcher {
 			/*
 			 * Title (multivalue field)
 			 */
-			String title = (String) ((ArrayList) doc.getFieldValue(SolrConstants.TITLE_FIELD)).get(0);
+			@SuppressWarnings("unchecked")
+			String title = ((ArrayList<String>) doc.getFieldValue(SolrConstants.TITLE_FIELD)).get(0);
 			if (title == null) {
 				System.out.println("ID has no title: " + id);
 				continue;
@@ -336,7 +337,7 @@ public class WNSearcher {
 		 */
 		JSONArray jGroupedJArray = new JSONArray();
 		// depth first
-		int count = 0;
+		//int count = 0;
 		for (ArrayList<JSONObject> groupList : groupedList) {
 
 			/*
@@ -366,7 +367,7 @@ public class WNSearcher {
 				// DEBUG: add row index for debug
 				// doc.put("qsraw", "" + count + ": " + doc.getString("qsraw"));
 
-				count++;
+				//count++;
 				jGroupedJArray.put(doc);
 			}
 		}
@@ -407,7 +408,7 @@ public class WNSearcher {
 	}
 
 	public String checkout(JSONArray jCheckout) {
-		// TODO Auto-generated method stub
+		// to be implemented for WN use-case
 		return null;
 	}
 

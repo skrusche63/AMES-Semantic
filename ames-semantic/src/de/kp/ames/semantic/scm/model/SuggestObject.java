@@ -36,8 +36,9 @@ public class SuggestObject {
 	/*
 	 * title is a multivalue field, only one value expected
 	 */
+	@SuppressWarnings("unchecked")
 	public String getTitle() {
-		return (String) ((ArrayList) doc.getFieldValue(SolrConstants.TITLE_FIELD)).get(0);
+		return ((ArrayList<String>) doc.getFieldValue(SolrConstants.TITLE_FIELD)).get(0);
 	}
 
 	public String getDescription() {

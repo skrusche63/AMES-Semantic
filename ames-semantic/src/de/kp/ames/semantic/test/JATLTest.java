@@ -14,6 +14,7 @@ import de.kp.ames.semantic.scm.SCMSearcher;
 
 public class JATLTest extends TestCase {
 
+	@SuppressWarnings("serial")
 	public void test() throws Exception {
 		
 //		

@@ -1,8 +1,6 @@
 package de.kp.ames.semantic.scm.renderer;
 
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Map.Entry;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,11 +64,12 @@ public class SCMHtmlRenderer {
 	}
 
 
-	private static JSONObject getFlagForMetric(String metricName, String metricLevel) throws Exception {
+	public static JSONObject getFlagForMetric(String metricName, String metricLevel) throws Exception {
 		JSONObject jMetric = new JSONObject();
 		
 		if (metricLevel.equals("low")) {
 			jMetric.put("flag", "images/silk/flag_green.png");
+			jMetric.put("flag_name", "flag_green");
 			jMetric.put("alt", "green flag");
 			if (metricName == "loc") {
 				jMetric.put("range", "1-100"); 
@@ -79,6 +78,7 @@ public class SCMHtmlRenderer {
 			}
 		} else if (metricLevel.equals("medium")) {
 			jMetric.put("flag", "images/silk/flag_yellow.png");
+			jMetric.put("flag_name", "flag_yellow");
 			jMetric.put("alt", "yellow flag");
 			if (metricName == "loc") {
 				jMetric.put("range", "100-200"); 
@@ -88,6 +88,7 @@ public class SCMHtmlRenderer {
 
 		} else if (metricLevel.equals("high")) {
 			jMetric.put("flag", "images/silk/flag_red.png");
+			jMetric.put("flag_name", "flag_red");
 			jMetric.put("alt", "red flag");
 			if (metricName == "loc") {
 				jMetric.put("range", ">200"); 

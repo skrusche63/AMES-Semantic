@@ -1,9 +1,7 @@
 package de.kp.ames.semantic.test;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import junit.framework.TestCase;
 
@@ -19,7 +17,6 @@ import de.kp.ames.semantic.xml.WNJsonConverter;
 public class WNWikipediaOpensearchTest extends TestCase {
 
 	public void test() throws Exception {
-		StringBuilder builder = new StringBuilder();
 		
 		// http://en.wikipedia.org/w/api.php?action=opensearch&search=a&limit=10&namespace=0&format=jsonfm
 		DefaultHttpClient client = new DefaultHttpClient();

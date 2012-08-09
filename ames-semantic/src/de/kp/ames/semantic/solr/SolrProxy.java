@@ -8,13 +8,16 @@ package de.kp.ames.semantic.solr;
 
 import java.net.MalformedURLException;
 import java.util.Collection;
+
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrInputDocument;
+
 import de.kp.ames.semantic.Bundle;
 
+@SuppressWarnings("deprecation")
 public class SolrProxy {
 	
 	private static Bundle bundle = Bundle.getInstance();

@@ -11,7 +11,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.solr.common.SolrInputDocument;
 import org.json.JSONArray;
 import org.json.JSONException;

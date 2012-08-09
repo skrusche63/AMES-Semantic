@@ -1,7 +1,6 @@
 package de.kp.ames.semantic.service;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 
 import de.kp.ames.semantic.http.RequestContext;
 import de.kp.ames.semantic.scm.SCMSearcher;

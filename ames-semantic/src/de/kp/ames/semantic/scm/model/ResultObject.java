@@ -34,8 +34,9 @@ public class ResultObject {
 	/*
 	 * title is a multivalue field, only one value expected
 	 */
+	@SuppressWarnings("unchecked")
 	public String getTitle() {
-		return (String) ((ArrayList) doc.getFieldValue(SolrConstants.TITLE_FIELD)).get(0);
+		return ((ArrayList<String>) doc.getFieldValue(SolrConstants.TITLE_FIELD)).get(0);
 	}
 
 	/*
@@ -60,8 +61,9 @@ public class ResultObject {
 		return (String) doc.getFieldValue("description");
 	}
 
+	@SuppressWarnings("unchecked")
 	public String getSource() {
-		return (String) ((ArrayList) doc.getFieldValue(SolrConstants.SOURCE_FIELD)).get(0);
+		return ((ArrayList<String>) doc.getFieldValue(SolrConstants.SOURCE_FIELD)).get(0);
 	}
 
 	public String getHighlightTitle() {
@@ -100,20 +102,24 @@ public class ResultObject {
 		return title.substring(0, title.length() - getName().length() - 1);
 	}
 
+	@SuppressWarnings("unchecked")
 	public String getMetricBacklinks() {
-		return (String) ((ArrayList) doc.getFieldValue("mback_kps")).get(0);
+		return ((ArrayList<String>) doc.getFieldValue("mback_kps")).get(0);
 	}
 
+	@SuppressWarnings("unchecked")
 	public String getMetricMethodCount() {
-		return (String) ((ArrayList) doc.getFieldValue("mmthd_kps")).get(0);
+		return ((ArrayList<String>) doc.getFieldValue("mmthd_kps")).get(0);
 	}
 
+	@SuppressWarnings("unchecked")
 	public String getMetricLOC() {
-		return (String) ((ArrayList) doc.getFieldValue("mloc_kps")).get(0);
+		return ((ArrayList<String>) doc.getFieldValue("mloc_kps")).get(0);
 	}
 
+	@SuppressWarnings("unchecked")
 	public String getAnnotations() {
-		String result = StringUtils.join((ArrayList)doc.getFieldValue("tags_kpg"), ", ");
+		String result = StringUtils.join((ArrayList<String>)doc.getFieldValue("tags_kpg"), ", ");
 		if (result.startsWith(", ")) result = result.substring(2);
 		return result;
 	}

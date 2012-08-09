@@ -289,11 +289,17 @@ public class SCMSearcher {
 			jDoc.put("title", title);
 			jDoc.put("name", scm.getName());
 			jDoc.put("source", scm.getSource());
-			jDoc.put("icon", "flag_green");
+			
+			/*
+			 * send back flag for LoC metric 
+			 */
+			String flag = SCMHtmlRenderer.getFlagForMetric("loc", scm.getMetricLOC()).getString("flag_name");
+			jDoc.put("icon", flag);
 
 			/*
 			 * result field (includes teaser: highlightedDescription)
 			 */
+			
 			jDoc.put("result", SCMHtmlRenderer.getResultHtml(scm));
 			
 			/*
